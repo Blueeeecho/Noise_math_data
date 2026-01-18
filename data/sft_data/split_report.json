@@ -1,0 +1,49 @@
+{
+  "timestamp": "20260105_140105",
+  "input": {
+    "path": "/Users/wangwenqing/Desktop/math/sft_flattened.jsonl",
+    "families": 2906,
+    "samples": 11493,
+    "family_size_distribution": {
+      "1": 197,
+      "2": 229,
+      "3": 367,
+      "4": 828,
+      "5": 1285
+    }
+  },
+  "family_buckets": {
+    "strict_families": 1285,
+    "complete_families": 2227,
+    "near_seed_noop": 146,
+    "near_seed_sem": 40,
+    "others": 493
+  },
+  "split_policy": {
+    "seed": 42,
+    "dev_ratio": 0.05,
+    "test_ratio": 0.05,
+    "min_eval_families": 100,
+    "prefer_strict": false,
+    "allow_relax": false
+  },
+  "split_result": {
+    "train_families": 2616,
+    "dev_families": 145,
+    "test_families": 145,
+    "train_samples": 10168,
+    "dev_samples": 673,
+    "test_samples": 652,
+    "relaxed_used_families": 0
+  },
+  "outputs": {
+    "train": "train.jsonl",
+    "dev": "dev.jsonl",
+    "test": "test.jsonl",
+    "report": "split_report.json",
+    "log": "split_report.20260105_140105.log",
+    "train_families": "./train_families.txt",
+    "dev_families": "./dev_families.txt",
+    "test_families": "./test_families.txt"
+  }
+}

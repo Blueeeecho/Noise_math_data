@@ -1,0 +1,10 @@
+
+    Evaluation Report
+    =================
+    Model: /root/autodl-tmp/A-new/output/model/sft/qwen2.5-1.5b-In/sft_train_test_py
+    Adapter: /root/autodl-tmp/A-new/output/model/DPO/1.5B_instruct/new_hard_lr_2e_6
+    Dataset: /root/autodl-tmp/A-new/data/test_data/gsm8k-test.jsonl
+    System Prompt: You are a reasoning engine. Solve the math problem...
+    
+    Accuracy: 0.3563 (470/1319)
+    

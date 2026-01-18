@@ -1,0 +1,11 @@
+# Ignore model checkpoints and large output files
+output/
+wandb/
+__pycache__/
+*.pyc
+*.pt
+*.pth
+*.bin
+*.safetensors
+.DS_Store
+.ipynb_checkpoints/

@@ -1,11 +1,16 @@
-# Ignore model checkpoints and large output files
-output/
-wandb/
+# Data
+data/all_backward_data.jsonl
+data/subset_100.jsonl
+output_backward/
+
+# Python
 __pycache__/
-*.pyc
-*.pt
-*.pth
-*.bin
-*.safetensors
+*.py[cod]
+*$py.class
+
+# IDE
+.vscode/
+.idea/
+
+# System
 .DS_Store
-.ipynb_checkpoints/

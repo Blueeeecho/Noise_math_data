@@ -90,7 +90,7 @@ $PYTHON_VERL train_verl.py \
     actor_rollout_ref.model.path="$MODEL_PATH" \
     actor_rollout_ref.model.lora_adapter_path="$OUTPUT_DIR/sft_model" \
     actor_rollout_ref.model.lora_rank=16 \
-    +actor_rollout_ref.model.override_config.attn_implementation=eager \
+    actor_rollout_ref.rollout.enforce_eager=False \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.model.use_remove_padding=False \
     actor_rollout_ref.actor.ppo_mini_batch_size=4 \
@@ -122,7 +122,7 @@ $PYTHON_VERL train_verl.py \
 cd "$BASE_DIR/scripts"
 
 echo "=== Step 4: Eval Backward Test ==="
-$PYTHON_VERL "$EVAL_DIR/eval_model.py" \
+python "$EVAL_DIR/eval_model.py" \
     --model_path "$OUTPUT_DIR/sft_model" \
     --base_model_path "$MODEL_PATH" \
     --data_path "$OUTPUT_DIR/test.jsonl" \
@@ -130,7 +130,7 @@ $PYTHON_VERL "$EVAL_DIR/eval_model.py" \
     --max_tokens 256
 
 echo "=== Step 5: Analysis Backward Test ==="
-python3 "$ANALYSIS_DIR/analyze_results.py" \
+python "$ANALYSIS_DIR/analyze_results.py" \
     --results_file "$OUTPUT_DIR/eval_result/results.jsonl" \
     --output_report "$OUTPUT_DIR/analysis_report.md"
 

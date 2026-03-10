@@ -85,7 +85,7 @@ mkdir -p "$OUTPUT_DIR"
 cd "$BASE_DIR/scripts"
 
 echo "=== Step 1: Prepare Backward Data ==="
-python3 prepare_backward_data.py
+python prepare_backward_data.py
 
 echo "=== Step 2: SFT Backward Test ==="
 MODEL_PATH=/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct
@@ -102,7 +102,7 @@ fi
 MODEL_PATH=/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct
 
 # Run SFT with small batch size and few steps/epochs for quick verification
-python3 "$SFT_DIR/sft_train.py" \
+python "$SFT_DIR/sft_train.py" \
     --model_name_or_path "$MODEL_PATH" \
     --train_file "$OUTPUT_DIR/train.jsonl" \
     --test_file "$OUTPUT_DIR/test.jsonl" \

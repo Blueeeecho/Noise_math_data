@@ -13,3 +13,7 @@ __pycache__/
 
 # System
 .DS_Store
+
+all_logs/
+*.err
+*.out

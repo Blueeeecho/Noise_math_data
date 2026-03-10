@@ -17,6 +17,59 @@ nvidia-smi
 source activate Reasoning360
 
 
+export CUDA_VISIBLE_DEVICES=0,1,2,3
+unset ROCR_VISIBLE_DEVICES
+
+
+export HF_HOME="/export/home/asifali/HF_cache"
+export HF_DATASETS_CACHE="/export/home/asifali/HF_cache"
+
+
+export PYTHONPATH="/export/home/asifali/Noise_math_data/:${PYTHONPATH:-}"
+echo "Python Path = ${PYTHONPATH}"
+
+
+# =================== User-Configurable Settings ===================
+# --- Execution Environment ---
+NUM_GPUS=4 # Set the number of GPUs to use on this node
+gpu_memory_utilization=0.8
+# --- Resuming & Logging ---
+
+WANDB_PROJECT="NOISY_MATHS_A100" # Your wandb project name
+
+# --- External Services ---
+export WANDB_API_KEY="64305b88cc27033d4132d6ce147ecce132e6955d"
+
+# =================== Environment Setup ===================
+#export NCCL_NVLS_ENABLE=1
+#export NCCL_IB_DISABLE=0
+#export NCCL_P2P_DISABLE=0
+#export CUDA_LAUNCH_BLOCKING=0
+#export NCCL_DEBUG=WARN
+#export CUDA_DEVICE_MAX_CONNECTIONS=1
+
+export NCCL_DEBUG=INFO
+export NCCL_DEBUG_SUBSYS=INIT,GRAPH
+export NCCL_ASYNC_ERROR_HANDLING=1
+export NCCL_NVLS_ENABLE=0
+unset NCCL_P2P_DISABLE
+unset NCCL_IB_DISABLE
+unset CUDA_LAUNCH_BLOCKING
+unset CUDA_DEVICE_MAX_CONNECTIONS
+# ==============================================================
+
+export TOKENIZERS_PARALLELISM=true
+export TRANSFORMERS_OFFLINE=1
+export TRANSFORMERS_NO_TORCHVISION=1
+export RAY_DISABLE_DOCKER_CPU_WARNING=1
+export RAY_EXPERIMENTAL_NOSET_CUDA_VISIBLE_DEVICES=1
+export PYTHONUNBUFFERED=1
+export HYDRA_FULL_ERROR=1
+export VLLM_USE_V1=1
+
+
+
+
 # Setup directories
 BASE_DIR=$(dirname $(readlink -f "$0"))/..
 DATA_DIR="$BASE_DIR/data"
@@ -70,8 +123,8 @@ python3 "$SFT_DIR/sft_train.py" \
 echo "=== Step 3: RL Backward Test ==="
 cd "$RL_DIR"
 # Convert data
-$PYTHON_VERL convert_data.py --input "$OUTPUT_DIR/train.jsonl" --output "$OUTPUT_DIR/rl_train.parquet"
-$PYTHON_VERL convert_data.py --input "$OUTPUT_DIR/test.jsonl" --output "$OUTPUT_DIR/rl_test.parquet"
+python convert_data.py --input "$OUTPUT_DIR/train.jsonl" --output "$OUTPUT_DIR/rl_train.parquet"
+python convert_data.py --input "$OUTPUT_DIR/test.jsonl" --output "$OUTPUT_DIR/rl_test.parquet"
 
 # Run RL
 REWARD_FN_PATH=$(readlink -f "$RL_DIR/reward_fn.py")
@@ -80,7 +133,7 @@ REWARD_FN_PATH=$(readlink -f "$RL_DIR/reward_fn.py")
 # Removed 'attn_implementation=eager' to allow SDPA (memory efficient)
 # train_batch_size = 8 (must be divisible by n_gpus * micro_batch)
 # ppo_mini_batch_size = 4
-$PYTHON_VERL train_verl.py \
+python train_verl.py \
     data.train_files="$OUTPUT_DIR/rl_train.parquet" \
     data.val_files="$OUTPUT_DIR/rl_test.parquet" \
     data.train_batch_size=8 \

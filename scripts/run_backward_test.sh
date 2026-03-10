@@ -71,7 +71,7 @@ export VLLM_USE_V1=1
 
 
 # Setup directories
-BASE_DIR=$(dirname $(readlink -f "$0"))/..
+BASE_DIR=/export/home/asifali/Noise_math_data/
 DATA_DIR=$BASE_DIR/data
 SFT_DIR=$BASE_DIR/sft
 RL_DIR=$BASE_DIR/rl

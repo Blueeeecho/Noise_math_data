@@ -16,7 +16,7 @@ def main():
     output_dir = "/export/home/asifali/Noise_math_data/output_backward"
     os.makedirs(output_dir, exist_ok=True)
 
-    
+
     data = []
     print(f"Reading from {input_path}...")
     with open(input_path, 'r', encoding='utf-8') as f:

@@ -155,7 +155,7 @@ python train_verl.py \
     actor_rollout_ref.rollout.log_prob_micro_batch_size=1 \
     actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.name=vllm \
-    actor_rollout_ref.rollout.gpu_memory_utilization=0.3 \
+    actor_rollout_ref.rollout.gpu_memory_utilization=0.8 \
     +actor_rollout_ref.rollout.max_model_len=1024 \
     actor_rollout_ref.rollout.n=1 \
     actor_rollout_ref.ref.log_prob_micro_batch_size=1 \
@@ -166,8 +166,8 @@ python train_verl.py \
     trainer.project_name=backward_test \
     trainer.experiment_name=run1 \
     trainer.logger=['console'] \
-    trainer.n_gpus_per_node=1 \
-    trainer.total_epochs=1 \
+    trainer.n_gpus_per_node=${NUM_GPUS} \
+    trainer.total_epochs=5 \
     trainer.total_training_steps=2 \
     hydra.run.dir="$OUTPUT_DIR/rl_run"
 

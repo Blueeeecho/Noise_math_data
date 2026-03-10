@@ -1,5 +1,4 @@
 # Data
-data/all_backward_data.jsonl
 data/subset_100.jsonl
 output_backward/
 

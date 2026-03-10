@@ -118,6 +118,7 @@ $PYTHON_VERL train_verl.py \
     trainer.total_training_steps=2 \
     hydra.run.dir="$OUTPUT_DIR/rl_run"
 
+
 cd "$BASE_DIR/scripts"
 
 echo "=== Step 4: Eval Backward Test ==="

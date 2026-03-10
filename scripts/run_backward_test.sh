@@ -1,5 +1,21 @@
-#!/bin/bash
-set -e
+#!/bin/bash -l
+
+#SBATCH -J MTMT-A100 #job name
+#SBATCH -p gpu-A100 # queue used
+#SBATCH --gres gpu:4 #number of gpus needed, default is 1
+#SBATCH -c 128  #number of CPUs needed, default is 1
+#SBATCH --mem 256GB #amount of memory needed, default
+#SBATCH --output=./all_logs/%j-%x.out
+#SBATCH --error=./all_logs/%j-%x.err
+#SBATCH -A A100
+#SBATCH -q a100_qos
+#SBATCH --mail-user=asif6827@gmail.com
+
+
+module load cuda12.4/toolkit
+nvidia-smi
+source activate Reasoning360
+
 
 # Setup directories
 BASE_DIR=$(dirname $(readlink -f "$0"))/..
@@ -10,13 +26,8 @@ EVAL_DIR="$BASE_DIR/eval"
 ANALYSIS_DIR="$BASE_DIR/analysis"
 OUTPUT_DIR="$BASE_DIR/output_backward"
 
-# Python executable for Verl environment
-PYTHON_VERL="/home/wwq416/miniconda3/envs/verl/bin/python"
-if [ ! -f "$PYTHON_VERL" ]; then
-    echo "Warning: Verl python not found at $PYTHON_VERL, using 'python3'"
-    PYTHON_VERL="python3"
-fi
 
+# Python executable for Verl environment
 mkdir -p "$OUTPUT_DIR"
 cd "$BASE_DIR/scripts"
 
@@ -24,7 +35,8 @@ echo "=== Step 1: Prepare Backward Data ==="
 python3 prepare_backward_data.py
 
 echo "=== Step 2: SFT Backward Test ==="
-MODEL_PATH="/home/wwq416/snap/wwq/model/Qwen/Qwen2.5-0.5B-Instruct"
+MODEL_PATH=/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct
+
 if [ ! -d "$MODEL_PATH" ]; then
     echo "Warning: Model path $MODEL_PATH not found."
     MODEL_PATH=$(find /home/wwq416/snap/wwq/model -maxdepth 3 -name "config.json" | head -n 1 | xargs dirname)
@@ -34,7 +46,7 @@ if [ ! -d "$MODEL_PATH" ]; then
     fi
     echo "Found model at: $MODEL_PATH"
 fi
-MODEL_PATH="/home/wwq416/snap/wwq/model/Qwen/Qwen2.5-0.5B-Instruct"
+MODEL_PATH=/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct
 
 # Run SFT with small batch size and few steps/epochs for quick verification
 python3 "$SFT_DIR/sft_train.py" \

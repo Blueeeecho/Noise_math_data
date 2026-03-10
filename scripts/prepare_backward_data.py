@@ -13,7 +13,7 @@ def main():
         print(f"Error: Input file not found at {input_path}")
         sys.exit(1)
 
-    output_dir = "../output_backward"
+    output_dir = "/export/home/asifali/Noise_math_data/output_backward"
     os.makedirs(output_dir, exist_ok=True)
     
     data = []

@@ -72,20 +72,20 @@ export VLLM_USE_V1=1
 
 # Setup directories
 BASE_DIR=$(dirname $(readlink -f "$0"))/..
-DATA_DIR="$BASE_DIR/data"
-SFT_DIR="$BASE_DIR/sft"
-RL_DIR="$BASE_DIR/rl"
-EVAL_DIR="$BASE_DIR/eval"
-ANALYSIS_DIR="$BASE_DIR/analysis"
-OUTPUT_DIR="$BASE_DIR/output_backward"
+DATA_DIR=$BASE_DIR/data
+SFT_DIR=$BASE_DIR/sft
+RL_DIR=$BASE_DIR/rl
+EVAL_DIR=$BASE_DIR/eval
+ANALYSIS_DIR=$BASE_DIR/analysis
+OUTPUT_DIR=$BASE_DIR/output_backward
 
 
 # Python executable for Verl environment
 mkdir -p "$OUTPUT_DIR"
-cd "$BASE_DIR/scripts"
+cd $BASE_DIR/scripts
 
 echo "=== Step 1: Prepare Backward Data ==="
-python prepare_backward_data.py
+python ./scripts/prepare_backward_data.py
 
 echo "=== Step 2: SFT Backward Test ==="
 MODEL_PATH=/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct

@@ -3,4 +3,4 @@
 
 
 
-bash ./scripts/run_backward_test.sh
+sbatch ./scripts/run_backward_test.sh

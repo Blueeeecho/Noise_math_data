@@ -35,7 +35,7 @@ NUM_GPUS=4 # Set the number of GPUs to use on this node
 gpu_memory_utilization=0.8
 # --- Resuming & Logging ---
 
-WANDB_PROJECT="NOISY_MATHS_A100" # Your wandb project name
+WANDB_PROJECT="NOISY_MATHS_A100" 
 
 # --- External Services ---
 export WANDB_API_KEY="64305b88cc27033d4132d6ce147ecce132e6955d"
@@ -68,27 +68,33 @@ export HYDRA_FULL_ERROR=1
 export VLLM_USE_V1=1
 
 
+# Setup directories - FIXED BASE_DIR
+BASE_DIR="/export/home/asifali/Noise_math_data"
 
+# Fallback for local testing if the export path doesn't exist
+if [ ! -d "$BASE_DIR" ]; then
+    BASE_DIR=$(dirname $(readlink -f "$0"))/..
+    echo "Warning: Remote path not found, falling back to local: $BASE_DIR"
+fi
 
-# Setup directories
-BASE_DIR=/export/home/asifali/Noise_math_data/
-DATA_DIR=$BASE_DIR/data
-SFT_DIR=$BASE_DIR/sft
-RL_DIR=$BASE_DIR/rl
-EVAL_DIR=$BASE_DIR/eval
-ANALYSIS_DIR=$BASE_DIR/analysis
-OUTPUT_DIR=$BASE_DIR/output_backward
+DATA_DIR="$BASE_DIR/data"
+SFT_DIR="$BASE_DIR/sft"
+RL_DIR="$BASE_DIR/rl"
+EVAL_DIR="$BASE_DIR/eval"
+ANALYSIS_DIR="$BASE_DIR/analysis"
+OUTPUT_DIR="$BASE_DIR/output_backward"
 
 
 # Python executable for Verl environment
 mkdir -p "$OUTPUT_DIR"
-cd $BASE_DIR/scripts
+
 
 echo "=== Step 1: Prepare Backward Data ==="
-python ./scripts/prepare_backward_data.py
+# Use absolute path
+python "$BASE_DIR/scripts/prepare_backward_data.py"
 
 echo "=== Step 2: SFT Backward Test ==="
-MODEL_PATH=/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct
+MODEL_PATH="/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct"
 
 if [ ! -d "$MODEL_PATH" ]; then
     echo "Warning: Model path $MODEL_PATH not found."
@@ -99,9 +105,11 @@ if [ ! -d "$MODEL_PATH" ]; then
     fi
     echo "Found model at: $MODEL_PATH"
 fi
-MODEL_PATH=/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct
+# Re-enforce remote path if it was overwritten by local check logic in a real remote run
+if [ -d "/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct" ]; then
+    MODEL_PATH="/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct"
+fi
 
-# Run SFT with small batch size and few steps/epochs for quick verification
 python "$SFT_DIR/sft_train.py" \
     --model_name_or_path "$MODEL_PATH" \
     --train_file "$OUTPUT_DIR/train.jsonl" \
@@ -110,8 +118,8 @@ python "$SFT_DIR/sft_train.py" \
     --use_lora True \
     --lora_r 16 \
     --max_length 256 \
-    --per_device_train_batch_size 2 \
-    --gradient_accumulation_steps 4 \
+    --per_device_train_batch_size 8 \
+    --gradient_accumulation_steps 2 \
     --num_train_epochs 1 \
     --save_strategy "no" \
     --logging_steps 1 \
@@ -121,23 +129,20 @@ python "$SFT_DIR/sft_train.py" \
 
 
 echo "=== Step 3: RL Backward Test ==="
-cd "$RL_DIR"
-# Convert data
-python convert_data.py --input "$OUTPUT_DIR/train.jsonl" --output "$OUTPUT_DIR/rl_train.parquet"
-python convert_data.py --input "$OUTPUT_DIR/test.jsonl" --output "$OUTPUT_DIR/rl_test.parquet"
+
+# Convert data using absolute paths
+python "$RL_DIR/convert_data.py" --input "$OUTPUT_DIR/train.jsonl" --output "$OUTPUT_DIR/rl_train.parquet"
+python "$RL_DIR/convert_data.py" --input "$OUTPUT_DIR/test.jsonl" --output "$OUTPUT_DIR/rl_test.parquet"
 
 # Run RL
-REWARD_FN_PATH=$(readlink -f "$RL_DIR/reward_fn.py")
+REWARD_FN_PATH="$RL_DIR/reward_fn.py"
 
-# Use conservative settings to avoid OOM
-# Removed 'attn_implementation=eager' to allow SDPA (memory efficient)
-# train_batch_size = 8 (must be divisible by n_gpus * micro_batch)
-# ppo_mini_batch_size = 4
-python train_verl.py \
+
+python "$RL_DIR/train_verl.py" \
     data.train_files="$OUTPUT_DIR/rl_train.parquet" \
     data.val_files="$OUTPUT_DIR/rl_test.parquet" \
-    data.train_batch_size=8 \
-    data.val_batch_size=8 \
+    data.train_batch_size=16 \
+    data.val_batch_size=16 \
     data.max_prompt_length=256 \
     data.max_response_length=256 \
     actor_rollout_ref.model.path="$MODEL_PATH" \
@@ -146,19 +151,19 @@ python train_verl.py \
     actor_rollout_ref.rollout.enforce_eager=False \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.model.use_remove_padding=False \
-    actor_rollout_ref.actor.ppo_mini_batch_size=4 \
-    actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=1 \
+    actor_rollout_ref.actor.ppo_mini_batch_size=8 \
+    actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=2 \
     actor_rollout_ref.actor.use_kl_loss=True \
     actor_rollout_ref.actor.kl_loss_coef=0.001 \
     actor_rollout_ref.actor.kl_loss_type=low_var_kl \
     actor_rollout_ref.model.enable_gradient_checkpointing=True \
-    actor_rollout_ref.rollout.log_prob_micro_batch_size=1 \
+    actor_rollout_ref.rollout.log_prob_micro_batch_size=2 \
     actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.name=vllm \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.8 \
-    +actor_rollout_ref.rollout.max_model_len=1024 \
+    +actor_rollout_ref.rollout.max_model_len=2048 \
     actor_rollout_ref.rollout.n=1 \
-    actor_rollout_ref.ref.log_prob_micro_batch_size=1 \
+    actor_rollout_ref.ref.log_prob_micro_batch_size=2 \
     reward.custom_reward_function.path="$REWARD_FN_PATH" \
     reward.custom_reward_function.name="compute_reward" \
     reward.reward_model.n_gpus_per_node=1 \
@@ -168,11 +173,11 @@ python train_verl.py \
     trainer.logger=['console'] \
     trainer.n_gpus_per_node=${NUM_GPUS} \
     trainer.total_epochs=5 \
-    trainer.total_training_steps=2 \
+    trainer.total_training_steps=10 \
     hydra.run.dir="$OUTPUT_DIR/rl_run"
 
 
-cd "$BASE_DIR/scripts"
+# REMOVED cd "$BASE_DIR/scripts"
 
 echo "=== Step 4: Eval Backward Test ==="
 python "$EVAL_DIR/eval_model.py" \

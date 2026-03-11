@@ -146,9 +146,9 @@ python "$RL_DIR/train_verl.py" \
     data.max_prompt_length=256 \
     data.max_response_length=256 \
     actor_rollout_ref.model.path="$MODEL_PATH" \
-    +actor_rollout_ref.model.lora_adapter_path="$OUTPUT_DIR/sft_model" \
-    +actor_rollout_ref.model.lora_rank=16 \
-    +actor_rollout_ref.rollout.enforce_eager=False \
+    ++actor_rollout_ref.model.lora_adapter_path="$OUTPUT_DIR/sft_model" \
+    ++actor_rollout_ref.model.lora_rank=16 \
+    ++actor_rollout_ref.rollout.enforce_eager=False \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.model.use_remove_padding=False \
     actor_rollout_ref.actor.ppo_mini_batch_size=8 \
@@ -161,7 +161,7 @@ python "$RL_DIR/train_verl.py" \
     actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.name=vllm \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.8 \
-    +actor_rollout_ref.rollout.max_model_len=2048 \
+    ++actor_rollout_ref.rollout.max_model_len=2048 \
     actor_rollout_ref.rollout.n=1 \
     actor_rollout_ref.ref.log_prob_micro_batch_size=2 \
     reward.custom_reward_function.path="$REWARD_FN_PATH" \

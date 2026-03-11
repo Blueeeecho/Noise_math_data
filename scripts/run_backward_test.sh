@@ -65,7 +65,8 @@ export RAY_DISABLE_DOCKER_CPU_WARNING=1
 export RAY_EXPERIMENTAL_NOSET_CUDA_VISIBLE_DEVICES=1
 export PYTHONUNBUFFERED=1
 export HYDRA_FULL_ERROR=1
-export VLLM_USE_V1=1
+# Disable vLLM V1 engine to avoid LoRA LRUCache bug and ensure stability
+export VLLM_USE_V1=0
 
 
 # Setup directories - FIXED BASE_DIR
@@ -149,6 +150,8 @@ python "$RL_DIR/train_verl.py" \
     ++actor_rollout_ref.model.lora_adapter_path="$OUTPUT_DIR/sft_model" \
     ++actor_rollout_ref.model.lora_rank=16 \
     ++actor_rollout_ref.rollout.enforce_eager=False \
+    ++actor_rollout_ref.model.model_config.dtype=bfloat16 \
+    ++actor_rollout_ref.model.fsdp_config.param_offload=False \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.model.use_remove_padding=False \
     actor_rollout_ref.actor.ppo_mini_batch_size=8 \
@@ -185,7 +188,8 @@ python "$EVAL_DIR/eval_model.py" \
     --base_model_path "$MODEL_PATH" \
     --data_path "$OUTPUT_DIR/test.jsonl" \
     --output_dir "$OUTPUT_DIR/eval_result" \
-    --max_tokens 256
+    --max_tokens 256 \
+    --gpu_memory_utilization 0.5
 
 echo "=== Step 5: Analysis Backward Test ==="
 python "$ANALYSIS_DIR/analyze_results.py" \

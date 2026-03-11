@@ -9,7 +9,7 @@ accelerate>=0.33.0
 
 # SFT (Supervised Fine-Tuning) & LoRA
 # Verl is compatible with older versions of trl where AutoModelForCausalLMWithValueHead is available
-trl==0.8.6
+trl==0.9.6
 peft>=0.12.0
 
 # RL (Verl / PPO / GRPO)

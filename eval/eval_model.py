@@ -127,7 +127,7 @@ def main():
         model=model_load_path,
         tensor_parallel_size=args.tensor_parallel_size,
         trust_remote_code=True,
-        enforce_eager=True,
+        enforce_eager=False,
         gpu_memory_utilization=0.6,
         enable_lora=enable_lora,
         max_lora_rank=64

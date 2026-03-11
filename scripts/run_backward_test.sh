@@ -160,13 +160,13 @@ python "$RL_DIR/train_verl.py" \
     actor_rollout_ref.rollout.log_prob_micro_batch_size=2 \
     actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.name=vllm \
-    actor_rollout_ref.rollout.gpu_memory_utilization=0.8 \
+    ++actor_rollout_ref.rollout.gpu_memory_utilization=0.8 \
     ++actor_rollout_ref.rollout.max_model_len=2048 \
     actor_rollout_ref.rollout.n=1 \
     actor_rollout_ref.ref.log_prob_micro_batch_size=2 \
-    reward.custom_reward_function.path="$REWARD_FN_PATH" \
-    reward.custom_reward_function.name="compute_reward" \
-    reward.reward_model.n_gpus_per_node=1 \
+    +reward.custom_reward_function.path="$REWARD_FN_PATH" \
+    +reward.custom_reward_function.name="compute_reward" \
+    +reward.reward_model.n_gpus_per_node=1 \
     algorithm.adv_estimator=grpo \
     trainer.project_name=backward_test \
     trainer.experiment_name=run1 \

@@ -182,8 +182,8 @@ def main():
     # Tokenizer
     tokenizer = AutoTokenizer.from_pretrained(
         script_args.model_name_or_path,
+        padding_side="left",  # Ensure left padding for generation
         trust_remote_code=True,
-        padding_side="right",
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token

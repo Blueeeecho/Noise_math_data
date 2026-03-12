@@ -13,45 +13,10 @@
 
 
 # =================== User-Configurable Settings ===================
-
-# Check for Remote vs Local Environment
-if [ -d "/export/home/asifali/Noise_math_data" ]; then
-    echo ">>> Environment: REMOTE (A100 Cluster)"
-    BASE_DIR="/export/home/asifali/Noise_math_data"
-    MODEL_PATH="/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct"
-    NUM_GPUS=4
-    
-    # Remote Hyperparameters
-    SFT_BATCH_SIZE=8
-    RL_BATCH_SIZE=16
-    PPO_MINI_BATCH=8
-    ROLLOUT_GPU_UTIL=0.8
-    EVAL_GPU_UTIL=0.5
-    
-    # Environment Setup
-    module load cuda12.4/toolkit
-    source activate Reasoning360
-    export CUDA_VISIBLE_DEVICES=0,1,2,3
-    
-else
-    echo ">>> Environment: LOCAL (Test)"
-    BASE_DIR=$(dirname $(readlink -f "$0"))/..
-    MODEL_PATH="/home/wwq416/snap/wwq/model/Qwen/Qwen2.5-0.5B-Instruct"
-    NUM_GPUS=1
-    
-    # Local Hyperparameters (Conservative)
-    SFT_BATCH_SIZE=1
-    RL_BATCH_SIZE=2
-    PPO_MINI_BATCH=1
-    ROLLOUT_GPU_UTIL=0.4
-    EVAL_GPU_UTIL=0.4
-    
-    # Environment Setup
-    # Assuming conda env 'verl' is already active or handled by user
-    export CUDA_VISIBLE_DEVICES=0
-fi
-
-# =================== Resuming & Logging ===================
+# --- Execution Environment ---
+NUM_GPUS=4 # Set the number of GPUs to use on this node
+gpu_memory_utilization=0.8
+# --- Resuming & Logging ---
 
 WANDB_PROJECT="NOISY_MATHS_A100" 
 
@@ -87,7 +52,15 @@ export HYDRA_FULL_ERROR=1
 export VLLM_USE_V1=0
 
 
-# Setup directories
+# Setup directories - FIXED BASE_DIR
+BASE_DIR="/export/home/asifali/Noise_math_data"
+
+# Fallback for local testing if the export path doesn't exist
+if [ ! -d "$BASE_DIR" ]; then
+    BASE_DIR=$(dirname $(readlink -f "$0"))/..
+    echo "Warning: Remote path not found, falling back to local: $BASE_DIR"
+fi
+
 DATA_DIR="$BASE_DIR/data"
 SFT_DIR="$BASE_DIR/sft"
 RL_DIR="$BASE_DIR/rl"
@@ -95,8 +68,8 @@ EVAL_DIR="$BASE_DIR/eval"
 ANALYSIS_DIR="$BASE_DIR/analysis"
 OUTPUT_DIR="$BASE_DIR/output_backward"
 
-# Export PYTHONPATH based on dynamic BASE_DIR
-export PYTHONPATH="$BASE_DIR:${PYTHONPATH:-}"
+# Export PYTHONPATH
+export PYTHONPATH="/export/home/asifali/Noise_math_data/:${PYTHONPATH:-}"
 echo "Python Path = ${PYTHONPATH}"
 
 # Python executable for Verl environment
@@ -108,7 +81,21 @@ echo "=== Step 1: Prepare Backward Data ==="
 python "$BASE_DIR/scripts/prepare_backward_data.py"
 
 echo "=== Step 2: SFT Backward Test ==="
-echo "Using Model: $MODEL_PATH"
+MODEL_PATH="/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct"
+
+if [ ! -d "$MODEL_PATH" ]; then
+    echo "Warning: Model path $MODEL_PATH not found."
+    MODEL_PATH=$(find /home/wwq416/snap/wwq/model -maxdepth 3 -name "config.json" | head -n 1 | xargs dirname)
+    if [ -z "$MODEL_PATH" ]; then
+        echo "Error: No model found. Cannot run training."
+        exit 1
+    fi
+    echo "Found model at: $MODEL_PATH"
+fi
+# Re-enforce remote path if it was overwritten by local check logic in a real remote run
+if [ -d "/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct" ]; then
+    MODEL_PATH="/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct"
+fi
 
 python "$SFT_DIR/sft_train.py" \
     --model_name_or_path "$MODEL_PATH" \
@@ -118,7 +105,7 @@ python "$SFT_DIR/sft_train.py" \
     --use_lora True \
     --lora_r 16 \
     --max_seq_length 256 \
-    --per_device_train_batch_size $SFT_BATCH_SIZE \
+    --per_device_train_batch_size 8 \
     --gradient_accumulation_steps 2 \
     --num_train_epochs 1 \
     --save_strategy "no" \
@@ -141,8 +128,8 @@ REWARD_FN_PATH="$RL_DIR/reward_fn.py"
 python "$RL_DIR/train_verl.py" \
     data.train_files="$OUTPUT_DIR/rl_train.parquet" \
     data.val_files="$OUTPUT_DIR/rl_test.parquet" \
-    data.train_batch_size=$RL_BATCH_SIZE \
-    data.val_batch_size=$RL_BATCH_SIZE \
+    data.train_batch_size=16 \
+    data.val_batch_size=16 \
     data.max_prompt_length=256 \
     data.max_response_length=256 \
     actor_rollout_ref.model.path="$MODEL_PATH" \
@@ -153,20 +140,20 @@ python "$RL_DIR/train_verl.py" \
     ++actor_rollout_ref.model.fsdp_config.param_offload=False \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.model.use_remove_padding=False \
-    actor_rollout_ref.actor.ppo_mini_batch_size=$PPO_MINI_BATCH \
-    actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=1 \
+    actor_rollout_ref.actor.ppo_mini_batch_size=8 \
+    actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=2 \
     actor_rollout_ref.actor.use_kl_loss=True \
     actor_rollout_ref.actor.kl_loss_coef=0.001 \
     actor_rollout_ref.actor.kl_loss_type=low_var_kl \
     actor_rollout_ref.model.enable_gradient_checkpointing=True \
-    actor_rollout_ref.rollout.log_prob_micro_batch_size=1 \
+    actor_rollout_ref.rollout.log_prob_micro_batch_size=2 \
     actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.name=vllm \
-    ++actor_rollout_ref.rollout.gpu_memory_utilization=$ROLLOUT_GPU_UTIL \
+    ++actor_rollout_ref.rollout.gpu_memory_utilization=0.8 \
     ++actor_rollout_ref.rollout.dtype=bfloat16 \
     ++actor_rollout_ref.rollout.max_model_len=2048 \
     actor_rollout_ref.rollout.n=1 \
-    actor_rollout_ref.ref.log_prob_micro_batch_size=1 \
+    actor_rollout_ref.ref.log_prob_micro_batch_size=2 \
     ++reward.custom_reward_function.path="$REWARD_FN_PATH" \
     ++reward.custom_reward_function.name="compute_reward" \
     ++reward.reward_model.n_gpus_per_node=1 \
@@ -189,7 +176,7 @@ python "$EVAL_DIR/eval_model.py" \
     --data_path "$OUTPUT_DIR/test.jsonl" \
     --output_dir "$OUTPUT_DIR/eval_result" \
     --max_tokens 256 \
-    --gpu_memory_utilization $EVAL_GPU_UTIL
+    --gpu_memory_utilization 0.5
 
 echo "=== Step 5: Analysis Backward Test ==="
 python "$ANALYSIS_DIR/analyze_results.py" \

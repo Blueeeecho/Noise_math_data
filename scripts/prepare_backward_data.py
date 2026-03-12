@@ -3,28 +3,13 @@ import os
 import sys
 
 def main():
-    # Determine paths relative to script location
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(script_dir)
+    input_path = "/export/home/asifali/Noise_math_data/data/all_backward_data.jsonl"
     
-    # Try multiple potential locations for input file
-    potential_paths = [
-        "/export/home/asifali/Noise_math_data/data/all_backward_data.jsonl",  # Remote
-        os.path.join(project_root, "data", "all_backward_data.jsonl"),        # Local relative
-        os.path.join(project_root, "..", "data", "all_backward_data.jsonl")   # Fallback
-    ]
-    
-    input_path = None
-    for path in potential_paths:
-        if os.path.exists(path):
-            input_path = path
-            break
-            
-    if not input_path:
-        print(f"Error: Input file not found in any of: {potential_paths}")
+    if not os.path.exists(input_path):
+        print(f"Error: Input file not found at {input_path}")
         sys.exit(1)
 
-    output_dir = os.path.join(project_root, "output_backward")
+    output_dir = "/export/home/asifali/Noise_math_data/output_backward"
     os.makedirs(output_dir, exist_ok=True)
 
 

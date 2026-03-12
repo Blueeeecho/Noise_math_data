@@ -10,6 +10,16 @@ from omegaconf import DictConfig, OmegaConf
 
 # Add the current directory to sys.path so we can import reward_fn
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+import torch
+
+# Patch for local environment compatibility (torch 2.4 vs verl)
+try:
+    import torch.distributed.tensor
+    if not hasattr(torch.distributed.tensor, 'DTensor'):
+        import torch.distributed._tensor
+        torch.distributed.tensor.DTensor = torch.distributed._tensor.DTensor
+except ImportError:
+    pass
 
 from verl.trainer.main_ppo import main as verl_main_ppo
 from reward_fn import compute_reward

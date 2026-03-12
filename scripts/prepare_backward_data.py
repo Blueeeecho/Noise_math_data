@@ -6,10 +6,6 @@ def main():
     input_path = "/export/home/asifali/Noise_math_data/data/all_backward_data.jsonl"
     
     if not os.path.exists(input_path):
-        # Fallback to local if not found
-        input_path = "/export/home/asifali/Noise_math_data/data/all_backward_data.jsonl"
-    
-    if not os.path.exists(input_path):
         print(f"Error: Input file not found at {input_path}")
         sys.exit(1)
 

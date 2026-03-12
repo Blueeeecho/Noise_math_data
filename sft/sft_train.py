@@ -258,8 +258,9 @@ def main():
         args=sft_config,
         train_dataset=dataset["train"],
         eval_dataset=dataset.get("test"),
-        processing_class=tokenizer,
+        tokenizer=tokenizer,
         peft_config=peft_config,
+        dataset_text_field="text",
     )
 
     logger.info("Starting training...")

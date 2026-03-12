@@ -20,6 +20,7 @@ def parse_args():
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument("--max_tokens", type=int, default=2048)
     parser.add_argument("--tensor_parallel_size", type=int, default=1)
+    parser.add_argument("--gpu_memory_utilization", type=float, default=0.6)
     return parser.parse_args()
 
 def extract_answer(text):
@@ -127,8 +128,8 @@ def main():
         model=model_load_path,
         tensor_parallel_size=args.tensor_parallel_size,
         trust_remote_code=True,
-        enforce_eager=True,
-        gpu_memory_utilization=0.6,
+        enforce_eager=False,
+        gpu_memory_utilization=args.gpu_memory_utilization,
         enable_lora=enable_lora,
         max_lora_rank=64
     )

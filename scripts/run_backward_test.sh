@@ -12,6 +12,7 @@
 #SBATCH --mail-user=asif6827@gmail.com
 
 
+<<<<<<< HEAD
 module load cuda12.4/toolkit
 nvidia-smi
 source activate noisymaths
@@ -29,6 +30,8 @@ export PYTHONPATH="/export/home/asifali/Noise_math_data/:${PYTHONPATH:-}"
 echo "Python Path = ${PYTHONPATH}"
 
 
+=======
+>>>>>>> 348548e1bf00ec151578e12cce7a83ecb246f999
 # =================== User-Configurable Settings ===================
 # --- Execution Environment ---
 NUM_GPUS=4 # Set the number of GPUs to use on this node
@@ -65,7 +68,8 @@ export RAY_DISABLE_DOCKER_CPU_WARNING=1
 export RAY_EXPERIMENTAL_NOSET_CUDA_VISIBLE_DEVICES=1
 export PYTHONUNBUFFERED=1
 export HYDRA_FULL_ERROR=1
-export VLLM_USE_V1=1
+# Disable vLLM V1 engine to avoid LoRA LRUCache bug and ensure stability
+export VLLM_USE_V1=0
 
 
 # Setup directories - FIXED BASE_DIR
@@ -84,6 +88,9 @@ EVAL_DIR="$BASE_DIR/eval"
 ANALYSIS_DIR="$BASE_DIR/analysis"
 OUTPUT_DIR="$BASE_DIR/output_backward"
 
+# Export PYTHONPATH
+export PYTHONPATH="/export/home/asifali/Noise_math_data/:${PYTHONPATH:-}"
+echo "Python Path = ${PYTHONPATH}"
 
 # Python executable for Verl environment
 mkdir -p "$OUTPUT_DIR"
@@ -117,7 +124,7 @@ python "$SFT_DIR/sft_train.py" \
     --output_dir "$OUTPUT_DIR/sft_model" \
     --use_lora True \
     --lora_r 16 \
-    --max_length 256 \
+    --max_seq_length 256 \
     --per_device_train_batch_size 8 \
     --gradient_accumulation_steps 2 \
     --num_train_epochs 1 \
@@ -149,6 +156,8 @@ python "$RL_DIR/train_verl.py" \
     ++actor_rollout_ref.model.lora_adapter_path="$OUTPUT_DIR/sft_model" \
     ++actor_rollout_ref.model.lora_rank=16 \
     ++actor_rollout_ref.rollout.enforce_eager=False \
+    ++actor_rollout_ref.model.model_config.dtype=bfloat16 \
+    ++actor_rollout_ref.model.fsdp_config.param_offload=False \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.model.use_remove_padding=False \
     actor_rollout_ref.actor.ppo_mini_batch_size=8 \
@@ -160,13 +169,14 @@ python "$RL_DIR/train_verl.py" \
     actor_rollout_ref.rollout.log_prob_micro_batch_size=2 \
     actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.name=vllm \
-    actor_rollout_ref.rollout.gpu_memory_utilization=0.8 \
+    ++actor_rollout_ref.rollout.gpu_memory_utilization=0.8 \
+    ++actor_rollout_ref.rollout.dtype=bfloat16 \
     ++actor_rollout_ref.rollout.max_model_len=2048 \
     actor_rollout_ref.rollout.n=1 \
     actor_rollout_ref.ref.log_prob_micro_batch_size=2 \
-    reward.custom_reward_function.path="$REWARD_FN_PATH" \
-    reward.custom_reward_function.name="compute_reward" \
-    reward.reward_model.n_gpus_per_node=1 \
+    ++reward.custom_reward_function.path="$REWARD_FN_PATH" \
+    ++reward.custom_reward_function.name="compute_reward" \
+    ++reward.reward_model.n_gpus_per_node=1 \
     algorithm.adv_estimator=grpo \
     trainer.project_name=backward_test \
     trainer.experiment_name=run1 \
@@ -185,7 +195,8 @@ python "$EVAL_DIR/eval_model.py" \
     --base_model_path "$MODEL_PATH" \
     --data_path "$OUTPUT_DIR/test.jsonl" \
     --output_dir "$OUTPUT_DIR/eval_result" \
-    --max_tokens 256
+    --max_tokens 256 \
+    --gpu_memory_utilization 0.5
 
 echo "=== Step 5: Analysis Backward Test ==="
 python "$ANALYSIS_DIR/analyze_results.py" \

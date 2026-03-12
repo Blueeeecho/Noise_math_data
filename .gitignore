@@ -1,19 +1,28 @@
-# Data
-data/subset_100.jsonl
-output_backward/
 
-# Python
+.trae/
 __pycache__/
-*.py[cod]
-*$py.class
-
-# IDE
-.vscode/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.gitignore
 .idea/
-
-# System
-.DS_Store
-
-all_logs/
-*.err
-*.out
+.vscode/
+*.swp
+*.swo
+output_backward/

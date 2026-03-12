@@ -118,7 +118,7 @@ python "$SFT_DIR/sft_train.py" \
     --output_dir "$OUTPUT_DIR/sft_model" \
     --use_lora True \
     --lora_r 16 \
-    --max_length 256 \
+    --max_seq_length 256 \
     --per_device_train_batch_size 8 \
     --gradient_accumulation_steps 2 \
     --num_train_epochs 1 \
@@ -164,6 +164,7 @@ python "$RL_DIR/train_verl.py" \
     actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.name=vllm \
     ++actor_rollout_ref.rollout.gpu_memory_utilization=0.8 \
+    ++actor_rollout_ref.rollout.dtype=bfloat16 \
     ++actor_rollout_ref.rollout.max_model_len=2048 \
     actor_rollout_ref.rollout.n=1 \
     actor_rollout_ref.ref.log_prob_micro_batch_size=2 \

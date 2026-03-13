@@ -12,7 +12,7 @@
 #SBATCH --mail-user=asif6827@gmail.com
 
 
-<<<<<<< HEAD
+
 module load cuda12.4/toolkit
 nvidia-smi
 source activate noisymaths

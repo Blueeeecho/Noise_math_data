@@ -1,0 +1,156 @@
+Generating train split: 0 examples [00:00, ? examples/s]Generating train split: 90 examples [00:00, 5937.86 examples/s]
+Generating test split: 0 examples [00:00, ? examples/s]Generating test split: 10 examples [00:00, 1188.32 examples/s]
+Map:   0%|          | 0/90 [00:00<?, ? examples/s]Map: 100%|██████████| 90/90 [00:00<00:00, 1928.19 examples/s]
+Map:   0%|          | 0/10 [00:00<?, ? examples/s]Map: 100%|██████████| 10/10 [00:00<00:00, 368.44 examples/s]
+`torch_dtype` is deprecated! Use `dtype` instead!
+Tokenizing train dataset:   0%|          | 0/90 [00:00<?, ? examples/s]Tokenizing train dataset:  48%|████▊     | 43/90 [00:00<00:00, 418.97 examples/s]Tokenizing train dataset: 100%|██████████| 90/90 [00:00<00:00, 445.55 examples/s]
+Truncating train dataset:   0%|          | 0/90 [00:00<?, ? examples/s]Truncating train dataset: 100%|██████████| 90/90 [00:00<00:00, 2566.58 examples/s]
+Tokenizing eval dataset:   0%|          | 0/10 [00:00<?, ? examples/s]Tokenizing eval dataset: 100%|██████████| 10/10 [00:00<00:00, 222.43 examples/s]
+Truncating eval dataset:   0%|          | 0/10 [00:00<?, ? examples/s]Truncating eval dataset: 100%|██████████| 10/10 [00:00<00:00, 212.87 examples/s]
+The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'bos_token_id': None, 'pad_token_id': 151643}.
+  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:04<00:04,  4.85s/it]                                              50%|█████     | 1/2 [00:04<00:04,  4.85s/it]100%|██████████| 2/2 [00:06<00:00,  2.93s/it]                                             100%|██████████| 2/2 [00:06<00:00,  2.93s/it]                                             100%|██████████| 2/2 [00:06<00:00,  2.93s/it]100%|██████████| 2/2 [00:06<00:00,  3.22s/it]
+Evaluating:   0%|          | 0/2 [00:00<?, ?it/s]The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+Evaluating:  50%|█████     | 1/2 [00:06<00:06,  6.60s/it]Evaluating: 100%|██████████| 2/2 [00:12<00:00,  6.28s/it]Evaluating: 100%|██████████| 2/2 [00:12<00:00,  6.33s/it]
+Exception ignored in: <function ResourceTracker.__del__ at 0x1553b736c400>
+Traceback (most recent call last):
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/multiprocess/resource_tracker.py", line 80, in __del__
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/multiprocess/resource_tracker.py", line 89, in _stop
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/multiprocess/resource_tracker.py", line 102, in _stop_locked
+AttributeError: '_thread.RLock' object has no attribute '_recursion_count'
+2026-03-11 17:41:50,363	INFO worker.py:2004 -- Started a local Ray instance. View the dashboard at [1m[32mhttp://127.0.0.1:8265 [39m[22m
+/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/ray/_private/worker.py:2052: FutureWarning: Tip: In future versions of Ray, Ray will no longer override accelerator visible devices env var if num_gpus=0 or num_gpus=None (default). To enable this behavior and turn off this error message, set RAY_ACCEL_ENV_VAR_OVERRIDE_ON_ZERO=0
+  warnings.warn(
+[36m(TaskRunner pid=2333584)[0m DeprecationWarning: `ray.state.available_resources_per_node` is a private attribute and access will be removed in a future Ray version.
+[36m(TaskRunner pid=2333584)[0m WARNING:2026-03-11 17:42:08,149:Waiting for register center actor R8MlbD_register_center to be ready. Elapsed time: 0 seconds out of 300 seconds.
+[36m(WorkerDict pid=2334373)[0m [W311 17:42:28.740464526 Utils.hpp:136] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())
+[36m(WorkerDict pid=2334373)[0m `torch_dtype` is deprecated! Use `dtype` instead!
+[36m(WorkerDict pid=2334373)[0m Flash Attention 2 only supports torch.float16 and torch.bfloat16 dtypes, but the current dype in Qwen2ForCausalLM is torch.float32. You should run training or inference using Automatic Mixed-Precision via the `with torch.autocast(device_type='torch_device'):` decorator, or load the model with the `dtype` argument. Example: `model = AutoModel.from_pretrained("openai/whisper-tiny", attn_implementation="flash_attention_2", dtype=torch.float16)`
+Error executing job with overrides: ['data.train_files=/export/home/asifali/Noise_math_data/output_backward/rl_train.parquet', 'data.val_files=/export/home/asifali/Noise_math_data/output_backward/rl_test.parquet', 'data.train_batch_size=16', 'data.val_batch_size=16', 'data.max_prompt_length=256', 'data.max_response_length=256', 'actor_rollout_ref.model.path=/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct', '++actor_rollout_ref.model.lora_adapter_path=/export/home/asifali/Noise_math_data/output_backward/sft_model', '++actor_rollout_ref.model.lora_rank=16', '++actor_rollout_ref.rollout.enforce_eager=False', 'actor_rollout_ref.actor.optim.lr=1e-6', 'actor_rollout_ref.model.use_remove_padding=False', 'actor_rollout_ref.actor.ppo_mini_batch_size=8', 'actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=2', 'actor_rollout_ref.actor.use_kl_loss=True', 'actor_rollout_ref.actor.kl_loss_coef=0.001', 'actor_rollout_ref.actor.kl_loss_type=low_var_kl', 'actor_rollout_ref.model.enable_gradient_checkpointing=True', 'actor_rollout_ref.rollout.log_prob_micro_batch_size=2', 'actor_rollout_ref.rollout.tensor_model_parallel_size=1', 'actor_rollout_ref.rollout.name=vllm', '++actor_rollout_ref.rollout.gpu_memory_utilization=0.8', '++actor_rollout_ref.rollout.max_model_len=2048', 'actor_rollout_ref.rollout.n=1', 'actor_rollout_ref.ref.log_prob_micro_batch_size=2', '+reward.custom_reward_function.path=/export/home/asifali/Noise_math_data/rl/reward_fn.py', '+reward.custom_reward_function.name=compute_reward', '+reward.reward_model.n_gpus_per_node=1', 'algorithm.adv_estimator=grpo', 'trainer.project_name=backward_test', 'trainer.experiment_name=run1', 'trainer.logger=[console]', 'trainer.n_gpus_per_node=4', 'trainer.total_epochs=5', 'trainer.total_training_steps=10']
+Traceback (most recent call last):
+  File "/export/home/asifali/Noise_math_data/rl/train_verl.py", line 48, in <module>
+    main()
+  File "/export/home/asifali/Noise_math_data/rl/train_verl.py", line 45, in main
+    verl_main_ppo()
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/main.py", line 94, in decorated_main
+    _run_hydra(
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+    _run_app(
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+    run_and_report(
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/_internal/utils.py", line 223, in run_and_report
+    raise ex
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+    return func()
+           ^^^^^^
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+    lambda: hydra.run(
+            ^^^^^^^^^^
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/_internal/hydra.py", line 132, in run
+    _ = ret.return_value
+        ^^^^^^^^^^^^^^^^
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/core/utils.py", line 260, in return_value
+    raise self._return_value
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/core/utils.py", line 186, in run_job
+    ret.return_value = task_function(task_cfg)
+                       ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/export/home/asifali/Reasoning360/verl/trainer/main_ppo.py", line 40, in main
+    run_ppo(config)
+  File "/export/home/asifali/Reasoning360/verl/trainer/main_ppo.py", line 74, in run_ppo
+    ray.get(runner.run.remote(config))
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/ray/_private/auto_init_hook.py", line 22, in auto_init_wrapper
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/ray/_private/client_mode_hook.py", line 104, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/ray/_private/worker.py", line 2981, in get
+    values, debugger_breakpoint = worker.get_objects(
+                                  ^^^^^^^^^^^^^^^^^^^
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/ray/_private/worker.py", line 1012, in get_objects
+    raise value.as_instanceof_cause()
+ray.exceptions.RayTaskError(ImportError): [36mray::TaskRunner.run()[39m (pid=2333584, ip=10.141.11.134, actor_id=f9718636a353902e3ee62c0401000000, repr=<verl.trainer.main_ppo.TaskRunner object at 0x15555071f230>)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/export/home/asifali/Reasoning360/verl/trainer/main_ppo.py", line 227, in run
+    trainer.init_workers()
+  File "/export/home/asifali/Reasoning360/verl/trainer/ppo/ray_trainer.py", line 949, in init_workers
+    self.actor_rollout_wg.init_model()
+  File "/export/home/asifali/Reasoning360/verl/single_controller/ray/base.py", line 50, in __call__
+    output = ray.get(output)
+             ^^^^^^^^^^^^^^^
+           ^^^^^^^^^^^^^^^^^^^
+           ^^^^^^^^^^^^^^^^^^^^^
+                                  ^^^^^^^^^^^^^^^^^^^
+ray.exceptions.RayTaskError(ImportError): [36mray::WorkerDict.actor_rollout_init_model()[39m (pid=2334373, ip=10.141.11.134, actor_id=9ad30350cfb429cc710f793701000000, repr=<verl.single_controller.ray.base.WorkerDict object at 0x1524d58e98e0>)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/export/home/asifali/Reasoning360/verl/single_controller/ray/base.py", line 706, in func
+    return getattr(self.worker_dict[key], name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/export/home/asifali/Reasoning360/verl/single_controller/base/decorator.py", line 689, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/export/home/asifali/Reasoning360/verl/workers/fsdp_workers.py", line 590, in init_model
+    ) = self._build_model_optimizer(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/export/home/asifali/Reasoning360/verl/workers/fsdp_workers.py", line 303, in _build_model_optimizer
+    apply_monkey_patch(
+  File "/export/home/asifali/Reasoning360/verl/models/transformers/monkey_patch.py", line 230, in apply_monkey_patch
+    from trl import AutoModelForCausalLMWithValueHead  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ImportError: cannot import name 'AutoModelForCausalLMWithValueHead' from 'trl' (/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/trl/__init__.py)
+[36m(TaskRunner pid=2333584)[0m Unhandled error (suppress with 'RAY_IGNORE_UNHANDLED_ERRORS=1'): [36mray::WorkerDict.actor_rollout_init_model()[39m (pid=2334635, ip=10.141.11.134, actor_id=0791b8478138aa768c145d0301000000, repr=<verl.single_controller.ray.base.WorkerDict object at 0x1524ddcc9cd0>)
+[36m(TaskRunner pid=2333584)[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36m(TaskRunner pid=2333584)[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36m(TaskRunner pid=2333584)[0m   File "/export/home/asifali/Reasoning360/verl/single_controller/ray/base.py", line 706, in func
+[36m(TaskRunner pid=2333584)[0m     return getattr(self.worker_dict[key], name)(*args, **kwargs)
+[36m(TaskRunner pid=2333584)[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36m(TaskRunner pid=2333584)[0m   File "/export/home/asifali/Reasoning360/verl/single_controller/base/decorator.py", line 689, in inner
+[36m(TaskRunner pid=2333584)[0m     return func(*args, **kwargs)
+[36m(TaskRunner pid=2333584)[0m            ^^^^^^^^^^^^^^^^^^^^^
+[36m(TaskRunner pid=2333584)[0m   File "/export/home/asifali/Reasoning360/verl/workers/fsdp_workers.py", line 590, in init_model
+[36m(TaskRunner pid=2333584)[0m     ) = self._build_model_optimizer(
+[36m(TaskRunner pid=2333584)[0m         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36m(TaskRunner pid=2333584)[0m   File "/export/home/asifali/Reasoning360/verl/workers/fsdp_workers.py", line 303, in _build_model_optimizer
+[36m(TaskRunner pid=2333584)[0m     apply_monkey_patch(
+[36m(TaskRunner pid=2333584)[0m   File "/export/home/asifali/Reasoning360/verl/models/transformers/monkey_patch.py", line 230, in apply_monkey_patch
+[36m(TaskRunner pid=2333584)[0m     from trl import AutoModelForCausalLMWithValueHead  # type: ignore
+[36m(TaskRunner pid=2333584)[0m     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36m(TaskRunner pid=2333584)[0m ImportError: cannot import name 'AutoModelForCausalLMWithValueHead' from 'trl' (/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/trl/__init__.py)
+[36m(WorkerDict pid=2334636)[0m [W311 17:42:28.741772299 Utils.hpp:136] Warning: Environment variable NCCL_ASYNC_ERROR_HANDLING is deprecated; use TORCH_NCCL_ASYNC_ERROR_HANDLING instead (function operator())[32m [repeated 3x across cluster] (Ray deduplicates logs by default. Set RAY_DEDUP_LOGS=0 to disable log deduplication, or see https://docs.ray.io/en/master/ray-observability/user-guides/configure-logging.html#log-deduplication for more options.)[0m
+[36m(WorkerDict pid=2334636)[0m `torch_dtype` is deprecated! Use `dtype` instead![32m [repeated 3x across cluster][0m
+[36m(WorkerDict pid=2334636)[0m Flash Attention 2 only supports torch.float16 and torch.bfloat16 dtypes, but the current dype in Qwen2Model is torch.float32. You should run training or inference using Automatic Mixed-Precision via the `with torch.autocast(device_type='torch_device'):` decorator, or load the model with the `dtype` argument. Example: `model = AutoModel.from_pretrained("openai/whisper-tiny", attn_implementation="flash_attention_2", dtype=torch.float16)`[32m [repeated 7x across cluster][0m
+[36m(TaskRunner pid=2333584)[0m Unhandled error (suppress with 'RAY_IGNORE_UNHANDLED_ERRORS=1'): [36mray::WorkerDict.actor_rollout_init_model()[39m (pid=2334636, ip=10.141.11.134, actor_id=d132a8f64aa471886784c27f01000000, repr=<verl.single_controller.ray.base.WorkerDict object at 0x1524ddcc9df0>)
+[36m(TaskRunner pid=2333584)[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36m(TaskRunner pid=2333584)[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36m(TaskRunner pid=2333584)[0m   File "/export/home/asifali/Reasoning360/verl/single_controller/ray/base.py", line 706, in func
+[36m(TaskRunner pid=2333584)[0m     return getattr(self.worker_dict[key], name)(*args, **kwargs)
+[36m(TaskRunner pid=2333584)[0m            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36m(TaskRunner pid=2333584)[0m   File "/export/home/asifali/Reasoning360/verl/single_controller/base/decorator.py", line 689, in inner
+[36m(TaskRunner pid=2333584)[0m     return func(*args, **kwargs)
+[36m(TaskRunner pid=2333584)[0m            ^^^^^^^^^^^^^^^^^^^^^
+[36m(TaskRunner pid=2333584)[0m   File "/export/home/asifali/Reasoning360/verl/workers/fsdp_workers.py", line 590, in init_model
+[36m(TaskRunner pid=2333584)[0m     ) = self._build_model_optimizer(
+[36m(TaskRunner pid=2333584)[0m         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36m(TaskRunner pid=2333584)[0m   File "/export/home/asifali/Reasoning360/verl/workers/fsdp_workers.py", line 303, in _build_model_optimizer
+[36m(TaskRunner pid=2333584)[0m     apply_monkey_patch(
+[36m(TaskRunner pid=2333584)[0m   File "/export/home/asifali/Reasoning360/verl/models/transformers/monkey_patch.py", line 230, in apply_monkey_patch
+[36m(TaskRunner pid=2333584)[0m     from trl import AutoModelForCausalLMWithValueHead  # type: ignore
+[36m(TaskRunner pid=2333584)[0m     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[36m(TaskRunner pid=2333584)[0m ImportError: cannot import name 'AutoModelForCausalLMWithValueHead' from 'trl' (/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/trl/__init__.py)
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.61it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.60it/s]
+
+/cm/local/apps/slurm/var/spool/job267032/slurm_script: line 188: 2335202 Killed                  python "$EVAL_DIR/eval_model.py" --model_path "$OUTPUT_DIR/sft_model" --base_model_path "$MODEL_PATH" --data_path "$OUTPUT_DIR/test.jsonl" --output_dir "$OUTPUT_DIR/eval_result" --max_tokens 256
+Traceback (most recent call last):
+  File "/export/home/asifali/Noise_math_data/analysis/analyze_results.py", line 107, in <module>
+    main()
+  File "/export/home/asifali/Noise_math_data/analysis/analyze_results.py", line 98, in main
+    results = read_jsonl(args.results_file)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/export/home/asifali/Noise_math_data/analysis/analyze_results.py", line 8, in read_jsonl
+    with open(path, 'r', encoding='utf-8') as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/export/home/asifali/Noise_math_data/output_backward/eval_result/results.jsonl'

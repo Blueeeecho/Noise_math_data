@@ -1,0 +1,10 @@
+mkdir: cannot create directory ‘/cm/local/apps/slurm/var/spool/job266688/../output_backward’: Permission denied
+/cm/local/apps/slurm/var/spool/job266688/slurm_script: line 85: cd: /cm/local/apps/slurm/var/spool/job266688/../scripts: No such file or directory
+python: can't open file '/cm/local/apps/slurm/var/spool/job266688/../sft/sft_train.py': [Errno 2] No such file or directory
+/cm/local/apps/slurm/var/spool/job266688/slurm_script: line 124: cd: /cm/local/apps/slurm/var/spool/job266688/../rl: No such file or directory
+python: can't open file '/export/home/asifali/Noise_math_data/convert_data.py': [Errno 2] No such file or directory
+python: can't open file '/export/home/asifali/Noise_math_data/convert_data.py': [Errno 2] No such file or directory
+python: can't open file '/export/home/asifali/Noise_math_data/train_verl.py': [Errno 2] No such file or directory
+/cm/local/apps/slurm/var/spool/job266688/slurm_script: line 175: cd: /cm/local/apps/slurm/var/spool/job266688/../scripts: No such file or directory
+python: can't open file '/cm/local/apps/slurm/var/spool/job266688/../eval/eval_model.py': [Errno 2] No such file or directory
+python: can't open file '/cm/local/apps/slurm/var/spool/job266688/../analysis/analyze_results.py': [Errno 2] No such file or directory

@@ -1,0 +1,43 @@
+Tue Mar 10 18:09:10 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 575.57.08              Driver Version: 575.57.08      CUDA Version: 12.9     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100 80GB PCIe          On  |   00000000:17:00.0 Off |                    0 |
+| N/A   45C    P0             53W /  300W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   1  NVIDIA A100 80GB PCIe          On  |   00000000:65:00.0 Off |                    0 |
+| N/A   46C    P0             58W /  300W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   2  NVIDIA A100 80GB PCIe          On  |   00000000:CA:00.0 Off |                    0 |
+| N/A   48C    P0             59W /  300W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   3  NVIDIA A100 80GB PCIe          On  |   00000000:E3:00.0 Off |                    0 |
+| N/A   52C    P0             60W /  300W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+Python Path = /export/home/asifali/Noise_math_data/:
+=== Step 1: Prepare Backward Data ===
+Reading from /export/home/asifali/Noise_math_data/data/all_backward_data.jsonl...
+Loaded 100 samples (max 100).
+Saved 90 training samples to /export/home/asifali/Noise_math_data/output_backward/train.jsonl
+Saved 10 test samples to /export/home/asifali/Noise_math_data/output_backward/test.jsonl
+=== Step 2: SFT Backward Test ===
+=== Step 3: RL Backward Test ===
+=== Step 4: Eval Backward Test ===
+=== Step 5: Analysis Backward Test ===
+=== Backward Test Completed Successfully ===

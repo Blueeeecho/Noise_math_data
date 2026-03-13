@@ -1,0 +1,304 @@
+Wed Mar 11 16:26:31 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 575.57.08              Driver Version: 575.57.08      CUDA Version: 12.9     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100 80GB PCIe          On  |   00000000:17:00.0 Off |                    0 |
+| N/A   53C    P0             56W /  300W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   1  NVIDIA A100 80GB PCIe          On  |   00000000:65:00.0 Off |                    0 |
+| N/A   53C    P0             61W /  300W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   2  NVIDIA A100 80GB PCIe          On  |   00000000:CA:00.0 Off |                    0 |
+| N/A   55C    P0             62W /  300W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   3  NVIDIA A100 80GB PCIe          On  |   00000000:E3:00.0 Off |                    0 |
+| N/A   59C    P0             63W /  300W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+Python Path = /export/home/asifali/Noise_math_data/:
+=== Step 1: Prepare Backward Data ===
+Reading from /export/home/asifali/Noise_math_data/data/all_backward_data.jsonl...
+Loaded 100 samples (max 100).
+Saved 90 training samples to /export/home/asifali/Noise_math_data/output_backward/train.jsonl
+Saved 10 test samples to /export/home/asifali/Noise_math_data/output_backward/test.jsonl
+=== Step 2: SFT Backward Test ===
+03/11/2026 16:28:46 - INFO - __main__ - Script Args: ScriptArguments(model_name_or_path='/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct', train_file='/export/home/asifali/Noise_math_data/output_backward/train.jsonl', test_file='/export/home/asifali/Noise_math_data/output_backward/test.jsonl', use_lora=True, lora_r=16, lora_alpha=16, lora_dropout=0.05, use_wandb=False, wandb_project='SFT-Training', wandb_run_name='sft_run', wandb_entity=None, eval_on_test_after_train=True, gen_max_new_tokens=128, gen_batch_size=8, strict_xml_only=False)
+03/11/2026 16:28:50 - INFO - __main__ - Starting training...
+crirdcmgpu006:2243354:2243354 [0] NCCL INFO cudaDriverVersion 12090
+crirdcmgpu006:2243354:2243354 [0] NCCL INFO Bootstrap : Using eno8303:10.141.11.134<0>
+crirdcmgpu006:2243354:2243354 [0] NCCL INFO NET/Plugin: No plugin found (libnccl-net.so)
+crirdcmgpu006:2243354:2243354 [0] NCCL INFO NET/Plugin: Using internal network plugin.
+NCCL version 2.21.5+cuda12.4
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO NET/IB : No device found.
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO NET/Socket : Using [0]eno8303:10.141.11.134<0> [1]bond1:10.2.8.46<0>
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO Using non-device net plugin version 0
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO Using network Socket
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO Using non-device net plugin version 0
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO Using network Socket
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO Using non-device net plugin version 0
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO Using network Socket
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO Using non-device net plugin version 0
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO Using network Socket
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO ncclCommInitRank comm 0x10521710 rank 1 nranks 4 cudaDev 1 nvmlDev 1 busId 65000 commId 0xca08bf97d6bdb693 - Init START
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO ncclCommInitRank comm 0x1051c540 rank 0 nranks 4 cudaDev 0 nvmlDev 0 busId 17000 commId 0xca08bf97d6bdb693 - Init START
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO ncclCommInitRank comm 0x1052c9b0 rank 3 nranks 4 cudaDev 3 nvmlDev 3 busId e3000 commId 0xca08bf97d6bdb693 - Init START
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO ncclCommInitRank comm 0x10527060 rank 2 nranks 4 cudaDev 2 nvmlDev 2 busId ca000 commId 0xca08bf97d6bdb693 - Init START
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO === System : maxBw 240.0 totalBw 240.0 ===
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO CPU/0-0 (1/1/2)
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO + PCI[5000.0] - NIC/0-0
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO + PCI[24.0] - GPU/0-17000 (0)
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO               + NVL[240.0] - GPU/65000
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO + PCI[24.0] - GPU/0-65000 (1)
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO               + NVL[240.0] - GPU/17000
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO + SYS[10.0] - CPU/1
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO + PCI[0.4] - NIC/0-4000
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO CPU/0-1 (1/1/2)
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO + PCI[24.0] - GPU/0-ca000 (2)
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO               + NVL[240.0] - GPU/E3000
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO + PCI[24.0] - GPU/0-e3000 (3)
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO               + NVL[240.0] - GPU/CA000
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO + SYS[10.0] - CPU/0
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO ==========================================
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO GPU/17000 :GPU/0-17000 (0/5000.0/LOC) GPU/0-65000 (1/240.0/NVL) GPU/0-ca000 (3/10.0/SYS) GPU/0-e3000 (3/10.0/SYS) CPU/0-0 (1/24.0/PHB) CPU/0-1 (2/10.0/SYS) 
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO GPU/65000 :GPU/0-17000 (1/240.0/NVL) GPU/0-65000 (0/5000.0/LOC) GPU/0-ca000 (3/10.0/SYS) GPU/0-e3000 (3/10.0/SYS) CPU/0-0 (1/24.0/PHB) CPU/0-1 (2/10.0/SYS) 
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO GPU/CA000 :GPU/0-17000 (3/10.0/SYS) GPU/0-65000 (3/10.0/SYS) GPU/0-ca000 (0/5000.0/LOC) GPU/0-e3000 (1/240.0/NVL) CPU/0-0 (2/10.0/SYS) CPU/0-1 (1/24.0/PHB) 
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO GPU/E3000 :GPU/0-17000 (3/10.0/SYS) GPU/0-65000 (3/10.0/SYS) GPU/0-ca000 (1/240.0/NVL) GPU/0-e3000 (0/5000.0/LOC) CPU/0-0 (2/10.0/SYS) CPU/0-1 (1/24.0/PHB) 
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO Setting affinity for GPU 1 to 55555555,55555555,55555555,55555555
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO Pattern 4, crossNic 0, nChannels 1, bw 10.000000/10.000000, type SYS/PIX, sameChannels 1
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO  0 : GPU/0 GPU/1 GPU/2 GPU/3
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO Pattern 1, crossNic 0, nChannels 1, bw 10.000000/10.000000, type SYS/PIX, sameChannels 1
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO  0 : GPU/0 GPU/1 GPU/2 GPU/3
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO === System : maxBw 240.0 totalBw 240.0 ===
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO CPU/0-0 (1/1/2)
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO + PCI[5000.0] - NIC/0-0
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO + PCI[24.0] - GPU/0-17000 (0)
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO               + NVL[240.0] - GPU/65000
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO + PCI[24.0] - GPU/0-65000 (1)
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO               + NVL[240.0] - GPU/17000
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO + SYS[10.0] - CPU/1
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO + PCI[0.4] - NIC/0-4000
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO CPU/0-1 (1/1/2)
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO + PCI[24.0] - GPU/0-ca000 (2)
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO               + NVL[240.0] - GPU/E3000
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO + PCI[24.0] - GPU/0-e3000 (3)
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO               + NVL[240.0] - GPU/CA000
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO + SYS[10.0] - CPU/0
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO ==========================================
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO GPU/17000 :GPU/0-17000 (0/5000.0/LOC) GPU/0-65000 (1/240.0/NVL) GPU/0-ca000 (3/10.0/SYS) GPU/0-e3000 (3/10.0/SYS) CPU/0-0 (1/24.0/PHB) CPU/0-1 (2/10.0/SYS) 
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO GPU/65000 :GPU/0-17000 (1/240.0/NVL) GPU/0-65000 (0/5000.0/LOC) GPU/0-ca000 (3/10.0/SYS) GPU/0-e3000 (3/10.0/SYS) CPU/0-0 (1/24.0/PHB) CPU/0-1 (2/10.0/SYS) 
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO GPU/CA000 :GPU/0-17000 (3/10.0/SYS) GPU/0-65000 (3/10.0/SYS) GPU/0-ca000 (0/5000.0/LOC) GPU/0-e3000 (1/240.0/NVL) CPU/0-0 (2/10.0/SYS) CPU/0-1 (1/24.0/PHB) 
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO GPU/E3000 :GPU/0-17000 (3/10.0/SYS) GPU/0-65000 (3/10.0/SYS) GPU/0-ca000 (1/240.0/NVL) GPU/0-e3000 (0/5000.0/LOC) CPU/0-0 (2/10.0/SYS) CPU/0-1 (1/24.0/PHB) 
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO Setting affinity for GPU 0 to 55555555,55555555,55555555,55555555
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO === System : maxBw 240.0 totalBw 240.0 ===
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO CPU/0-0 (1/1/2)
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO + PCI[5000.0] - NIC/0-0
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO + PCI[24.0] - GPU/0-17000 (0)
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO               + NVL[240.0] - GPU/65000
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO + PCI[24.0] - GPU/0-65000 (1)
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO               + NVL[240.0] - GPU/17000
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO + SYS[10.0] - CPU/1
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO + PCI[0.4] - NIC/0-4000
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO CPU/0-1 (1/1/2)
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO + PCI[24.0] - GPU/0-ca000 (2)
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO               + NVL[240.0] - GPU/E3000
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO + PCI[24.0] - GPU/0-e3000 (3)
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO               + NVL[240.0] - GPU/CA000
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO + SYS[10.0] - CPU/0
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO ==========================================
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO GPU/17000 :GPU/0-17000 (0/5000.0/LOC) GPU/0-65000 (1/240.0/NVL) GPU/0-ca000 (3/10.0/SYS) GPU/0-e3000 (3/10.0/SYS) CPU/0-0 (1/24.0/PHB) CPU/0-1 (2/10.0/SYS) 
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO GPU/65000 :GPU/0-17000 (1/240.0/NVL) GPU/0-65000 (0/5000.0/LOC) GPU/0-ca000 (3/10.0/SYS) GPU/0-e3000 (3/10.0/SYS) CPU/0-0 (1/24.0/PHB) CPU/0-1 (2/10.0/SYS) 
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO GPU/CA000 :GPU/0-17000 (3/10.0/SYS) GPU/0-65000 (3/10.0/SYS) GPU/0-ca000 (0/5000.0/LOC) GPU/0-e3000 (1/240.0/NVL) CPU/0-0 (2/10.0/SYS) CPU/0-1 (1/24.0/PHB) 
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO GPU/E3000 :GPU/0-17000 (3/10.0/SYS) GPU/0-65000 (3/10.0/SYS) GPU/0-ca000 (1/240.0/NVL) GPU/0-e3000 (0/5000.0/LOC) CPU/0-0 (2/10.0/SYS) CPU/0-1 (1/24.0/PHB) 
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO Setting affinity for GPU 3 to aaaaaaaa,aaaaaaaa,aaaaaaaa,aaaaaaaa
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO === System : maxBw 240.0 totalBw 240.0 ===
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO CPU/0-0 (1/1/2)
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO + PCI[5000.0] - NIC/0-0
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO + PCI[24.0] - GPU/0-17000 (0)
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO               + NVL[240.0] - GPU/65000
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO + PCI[24.0] - GPU/0-65000 (1)
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO               + NVL[240.0] - GPU/17000
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO + SYS[10.0] - CPU/1
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO + PCI[0.4] - NIC/0-4000
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO CPU/0-1 (1/1/2)
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO + PCI[24.0] - GPU/0-ca000 (2)
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO               + NVL[240.0] - GPU/E3000
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO + PCI[24.0] - GPU/0-e3000 (3)
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO               + NVL[240.0] - GPU/CA000
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO + SYS[10.0] - CPU/0
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO ==========================================
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO GPU/17000 :GPU/0-17000 (0/5000.0/LOC) GPU/0-65000 (1/240.0/NVL) GPU/0-ca000 (3/10.0/SYS) GPU/0-e3000 (3/10.0/SYS) CPU/0-0 (1/24.0/PHB) CPU/0-1 (2/10.0/SYS) 
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO GPU/65000 :GPU/0-17000 (1/240.0/NVL) GPU/0-65000 (0/5000.0/LOC) GPU/0-ca000 (3/10.0/SYS) GPU/0-e3000 (3/10.0/SYS) CPU/0-0 (1/24.0/PHB) CPU/0-1 (2/10.0/SYS) 
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO GPU/CA000 :GPU/0-17000 (3/10.0/SYS) GPU/0-65000 (3/10.0/SYS) GPU/0-ca000 (0/5000.0/LOC) GPU/0-e3000 (1/240.0/NVL) CPU/0-0 (2/10.0/SYS) CPU/0-1 (1/24.0/PHB) 
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO GPU/E3000 :GPU/0-17000 (3/10.0/SYS) GPU/0-65000 (3/10.0/SYS) GPU/0-ca000 (1/240.0/NVL) GPU/0-e3000 (0/5000.0/LOC) CPU/0-0 (2/10.0/SYS) CPU/0-1 (1/24.0/PHB) 
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO Setting affinity for GPU 2 to aaaaaaaa,aaaaaaaa,aaaaaaaa,aaaaaaaa
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO Pattern 4, crossNic 0, nChannels 1, bw 10.000000/10.000000, type SYS/PIX, sameChannels 1
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO  0 : GPU/0 GPU/1 GPU/2 GPU/3
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO Pattern 1, crossNic 0, nChannels 1, bw 10.000000/10.000000, type SYS/PIX, sameChannels 1
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO  0 : GPU/0 GPU/1 GPU/2 GPU/3
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO Pattern 4, crossNic 0, nChannels 1, bw 10.000000/10.000000, type SYS/PIX, sameChannels 1
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO  0 : GPU/0 GPU/1 GPU/2 GPU/3
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO Pattern 4, crossNic 0, nChannels 1, bw 10.000000/10.000000, type SYS/PIX, sameChannels 1
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO  0 : GPU/0 GPU/1 GPU/2 GPU/3
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO Pattern 1, crossNic 0, nChannels 1, bw 10.000000/10.000000, type SYS/PIX, sameChannels 1
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO  0 : GPU/0 GPU/1 GPU/2 GPU/3
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO Pattern 1, crossNic 0, nChannels 1, bw 10.000000/10.000000, type SYS/PIX, sameChannels 1
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO  0 : GPU/0 GPU/1 GPU/2 GPU/3
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO comm 0x10527060 rank 2 nRanks 4 nNodes 1 localRanks 4 localRank 2 MNNVL 0
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO comm 0x10521710 rank 1 nRanks 4 nNodes 1 localRanks 4 localRank 1 MNNVL 0
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO comm 0x1052c9b0 rank 3 nRanks 4 nNodes 1 localRanks 4 localRank 3 MNNVL 0
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO Tree 0 : 0 -> 1 -> 2/-1/-1
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO Tree 1 : 0 -> 1 -> 2/-1/-1
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO comm 0x1051c540 rank 0 nRanks 4 nNodes 1 localRanks 4 localRank 0 MNNVL 0
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO Ring 00 : 2 -> 3 -> 0
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO Ring 01 : 2 -> 3 -> 0
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO Tree 0 : -1 -> 0 -> 1/-1/-1
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO Tree 1 : -1 -> 0 -> 1/-1/-1
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO Ring 00 : 1 -> 2 -> 3
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO Channel 00/02 :    0   1   2   3
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO Ring 01 : 1 -> 2 -> 3
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO Channel 01/02 :    0   1   2   3
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO Ring 00 : 3 -> 0 -> 1
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO Ring 01 : 3 -> 0 -> 1
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO Trees [0] 1/-1/-1->0->-1 [1] 1/-1/-1->0->-1
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO P2P Chunksize set to 524288
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO Ring 00 : 0 -> 1 -> 2
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO Trees [0] 3/-1/-1->2->1 [1] 3/-1/-1->2->1
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO P2P Chunksize set to 524288
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO Trees [0] -1/-1/-1->3->2 [1] -1/-1/-1->3->2
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO P2P Chunksize set to 524288
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO Ring 01 : 0 -> 1 -> 2
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO Trees [0] 2/-1/-1->1->0 [1] 2/-1/-1->1->0
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO P2P Chunksize set to 524288
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO Channel 00 : 3[3] -> 0[0] via SHM/direct/direct
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO Channel 01 : 3[3] -> 0[0] via SHM/direct/direct
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO Channel 00 : 1[1] -> 2[2] via SHM/direct/direct
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO Channel 01 : 1[1] -> 2[2] via SHM/direct/direct
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO Channel 00/0 : 2[2] -> 3[3] via P2P/direct pointer/read
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO Channel 00/0 : 0[0] -> 1[1] via P2P/direct pointer/read
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO Channel 01/0 : 2[2] -> 3[3] via P2P/direct pointer/read
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO Channel 01/0 : 0[0] -> 1[1] via P2P/direct pointer/read
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO Connected all rings
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO Connected all rings
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO Connected all rings
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO Connected all rings
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO Channel 00/0 : 3[3] -> 2[2] via P2P/direct pointer/read
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO Channel 01/0 : 3[3] -> 2[2] via P2P/direct pointer/read
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO Channel 00 : 2[2] -> 1[1] via SHM/direct/direct
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO Channel 01 : 2[2] -> 1[1] via SHM/direct/direct
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO Channel 00/0 : 1[1] -> 0[0] via P2P/direct pointer/read
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO Channel 01/0 : 1[1] -> 0[0] via P2P/direct pointer/read
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO Connected all trees
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO threadThresholds 8/8/64 | 32/8/64 | 512 | 512
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO 2 coll channels, 2 collnet channels, 0 nvls channels, 2 p2p channels, 2 p2p channels per peer
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO Connected all trees
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO threadThresholds 8/8/64 | 32/8/64 | 512 | 512
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO 2 coll channels, 2 collnet channels, 0 nvls channels, 2 p2p channels, 2 p2p channels per peer
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO Connected all trees
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO threadThresholds 8/8/64 | 32/8/64 | 512 | 512
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO 2 coll channels, 2 collnet channels, 0 nvls channels, 2 p2p channels, 2 p2p channels per peer
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO Connected all trees
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO threadThresholds 8/8/64 | 32/8/64 | 512 | 512
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO 2 coll channels, 2 collnet channels, 0 nvls channels, 2 p2p channels, 2 p2p channels per peer
+crirdcmgpu006:2243354:2243878 [2] NCCL INFO ncclCommInitRank comm 0x10527060 rank 2 nranks 4 cudaDev 2 nvmlDev 2 busId ca000 commId 0xca08bf97d6bdb693 - Init COMPLETE
+crirdcmgpu006:2243354:2243876 [0] NCCL INFO ncclCommInitRank comm 0x1051c540 rank 0 nranks 4 cudaDev 0 nvmlDev 0 busId 17000 commId 0xca08bf97d6bdb693 - Init COMPLETE
+crirdcmgpu006:2243354:2243879 [3] NCCL INFO ncclCommInitRank comm 0x1052c9b0 rank 3 nranks 4 cudaDev 3 nvmlDev 3 busId e3000 commId 0xca08bf97d6bdb693 - Init COMPLETE
+crirdcmgpu006:2243354:2243877 [1] NCCL INFO ncclCommInitRank comm 0x10521710 rank 1 nranks 4 cudaDev 1 nvmlDev 1 busId 65000 commId 0xca08bf97d6bdb693 - Init COMPLETE
+{'loss': 2.0251, 'grad_norm': 1.8365936279296875, 'learning_rate': 2e-05, 'entropy': 1.13671875, 'num_tokens': 16384.0, 'mean_token_accuracy': 0.6518382430076599, 'epoch': 0.67}
+{'loss': 1.9928, 'grad_norm': 1.7944061756134033, 'learning_rate': 1e-05, 'entropy': 1.125, 'num_tokens': 23040.0, 'mean_token_accuracy': 0.6577677130699158, 'epoch': 1.0}
+{'train_runtime': 14.1946, 'train_samples_per_second': 6.34, 'train_steps_per_second': 0.141, 'train_loss': 2.0089101791381836, 'epoch': 1.0}
+03/11/2026 16:29:05 - INFO - __main__ - Saving model to /export/home/asifali/Noise_math_data/output_backward/sft_model
+03/11/2026 16:29:06 - INFO - __main__ - Running generation-based evaluation...
+03/11/2026 16:29:21 - INFO - __main__ - Test Metrics: {'accuracy': 0.0, 'total': 10, 'correct': 0}
+=== Step 3: RL Backward Test ===
+Converted 90 records to /export/home/asifali/Noise_math_data/output_backward/rl_train.parquet
+Converted 10 records to /export/home/asifali/Noise_math_data/output_backward/rl_test.parquet
+=== Step 4: Eval Backward Test ===
+INFO 03-11 16:30:10 [__init__.py:239] Automatically detected platform cuda.
+Loading model from /export/home/asifali/Noise_math_data/output_backward/sft_model
+Loading LoRA adapter from /export/home/asifali/Noise_math_data/output_backward/sft_model on top of /export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct
+INFO 03-11 16:30:32 [config.py:600] This model supports multiple tasks: {'generate', 'score', 'embed', 'reward', 'classify'}. Defaulting to 'generate'.
+INFO 03-11 16:30:32 [config.py:1780] Chunked prefill is enabled with max_num_batched_tokens=8192.
+WARNING 03-11 16:30:32 [cuda.py:96] To see benefits of async output processing, enable CUDA graph. Since, enforce-eager is enabled, async output processor cannot be used
+WARNING 03-11 16:30:32 [config.py:2468] LoRA with chunked prefill is still experimental and may be unstable.
+INFO 03-11 16:30:33 [core.py:61] Initializing a V1 LLM engine (v0.8.3) with config: model='/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct', speculative_config=None, tokenizer='/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, override_neuron_config=None, tokenizer_revision=None, trust_remote_code=True, dtype=torch.bfloat16, max_seq_len=32768, download_dir=None, load_format=LoadFormat.AUTO, tensor_parallel_size=1, pipeline_parallel_size=1, disable_custom_all_reduce=False, quantization=None, enforce_eager=True, kv_cache_dtype=auto,  device_config=cuda, decoding_config=DecodingConfig(guided_decoding_backend='xgrammar', reasoning_backend=None), observability_config=ObservabilityConfig(show_hidden_metrics=False, otlp_traces_endpoint=None, collect_model_forward_time=False, collect_model_execute_time=False), seed=None, served_model_name=/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct, num_scheduler_steps=1, multi_step_stream_outputs=True, enable_prefix_caching=True, chunked_prefill_enabled=True, use_async_output_proc=False, disable_mm_preprocessor_cache=False, mm_processor_kwargs=None, pooler_config=None, compilation_config={"splitting_ops":[],"compile_sizes":[],"cudagraph_capture_sizes":[],"max_capture_size":0}
+WARNING 03-11 16:30:38 [utils.py:2413] Methods determine_num_available_blocks,device_config,get_cache_block_size_bytes,initialize_cache not implemented in <vllm.v1.worker.gpu_worker.Worker object at 0x155347080dd0>
+INFO 03-11 16:30:39 [parallel_state.py:957] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, TP rank 0
+INFO 03-11 16:30:39 [cuda.py:221] Using Flash Attention backend on V1 engine.
+INFO 03-11 16:30:39 [gpu_model_runner.py:1258] Starting to load model /export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct...
+WARNING 03-11 16:30:39 [topk_topp_sampler.py:69] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.
+INFO 03-11 16:30:40 [loader.py:447] Loading weights took 0.75 seconds
+INFO 03-11 16:30:41 [punica_selector.py:18] Using PunicaWrapperGPU.
+INFO 03-11 16:30:41 [gpu_model_runner.py:1273] Model loading took 3.0567 GiB and 1.286982 seconds
+ERROR 03-11 16:30:41 [core.py:390] EngineCore hit an exception: Traceback (most recent call last):
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 378, in run_engine_core
+ERROR 03-11 16:30:41 [core.py:390]     engine_core = EngineCoreProc(*args, **kwargs)
+ERROR 03-11 16:30:41 [core.py:390]                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 319, in __init__
+ERROR 03-11 16:30:41 [core.py:390]     super().__init__(vllm_config, executor_class, log_stats)
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 71, in __init__
+ERROR 03-11 16:30:41 [core.py:390]     self._initialize_kv_caches(vllm_config)
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 132, in _initialize_kv_caches
+ERROR 03-11 16:30:41 [core.py:390]     available_gpu_memory = self.model_executor.determine_available_memory()
+ERROR 03-11 16:30:41 [core.py:390]                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/v1/executor/abstract.py", line 66, in determine_available_memory
+ERROR 03-11 16:30:41 [core.py:390]     output = self.collective_rpc("determine_available_memory")
+ERROR 03-11 16:30:41 [core.py:390]              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/executor/uniproc_executor.py", line 56, in collective_rpc
+ERROR 03-11 16:30:41 [core.py:390]     answer = run_method(self.driver_worker, method, args, kwargs)
+ERROR 03-11 16:30:41 [core.py:390]              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/utils.py", line 2347, in run_method
+ERROR 03-11 16:30:41 [core.py:390]     return func(*args, **kwargs)
+ERROR 03-11 16:30:41 [core.py:390]            ^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+ERROR 03-11 16:30:41 [core.py:390]     return func(*args, **kwargs)
+ERROR 03-11 16:30:41 [core.py:390]            ^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/v1/worker/gpu_worker.py", line 157, in determine_available_memory
+ERROR 03-11 16:30:41 [core.py:390]     self.model_runner.profile_run()
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/v1/worker/gpu_model_runner.py", line 1573, in profile_run
+ERROR 03-11 16:30:41 [core.py:390]     hidden_states = self._dummy_run(self.max_num_tokens)
+ERROR 03-11 16:30:41 [core.py:390]                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+ERROR 03-11 16:30:41 [core.py:390]     return func(*args, **kwargs)
+ERROR 03-11 16:30:41 [core.py:390]            ^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/v1/worker/gpu_model_runner.py", line 1392, in _dummy_run
+ERROR 03-11 16:30:41 [core.py:390]     with self.maybe_dummy_run_with_lora(self.lora_config,
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/contextlib.py", line 137, in __enter__
+ERROR 03-11 16:30:41 [core.py:390]     return next(self.gen)
+ERROR 03-11 16:30:41 [core.py:390]            ^^^^^^^^^^^^^^
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/v1/worker/lora_model_runner_mixin.py", line 122, in maybe_dummy_run_with_lora
+ERROR 03-11 16:30:41 [core.py:390]     self._set_active_loras(tuple(prompt_lora_mapping),
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/v1/worker/lora_model_runner_mixin.py", line 72, in _set_active_loras
+ERROR 03-11 16:30:41 [core.py:390]     self.lora_manager.set_active_adapters(lora_requests, lora_mapping)
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/lora/worker_manager.py", line 167, in set_active_adapters
+ERROR 03-11 16:30:41 [core.py:390]     set_active_adapters_worker(requests, mapping, self._apply_adapters,
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/adapter_commons/utils.py", line 54, in set_active_adapters_worker
+ERROR 03-11 16:30:41 [core.py:390]     apply_adapters_func(requests)
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/lora/worker_manager.py", line 227, in _apply_adapters
+ERROR 03-11 16:30:41 [core.py:390]     self.add_adapter(lora)
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/lora/worker_manager.py", line 250, in add_adapter
+ERROR 03-11 16:30:41 [core.py:390]     self._adapter_manager.activate_adapter(lora_request.lora_int_id)
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/lora/models.py", line 752, in activate_adapter
+ERROR 03-11 16:30:41 [core.py:390]     self._active_adapters.touch(lora_id)
+ERROR 03-11 16:30:41 [core.py:390]   File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/vllm/utils.py", line 275, in touch
+ERROR 03-11 16:30:41 [core.py:390]     self._LRUCache__update(key)  # type: ignore
+ERROR 03-11 16:30:41 [core.py:390]     ^^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 16:30:41 [core.py:390] AttributeError: 'LoRALRUCache' object has no attribute '_LRUCache__update'. Did you mean: '_LRUCache__order'?
+ERROR 03-11 16:30:41 [core.py:390] 
+CRITICAL 03-11 16:30:41 [core_client.py:361] Got fatal signal from worker processes, shutting down. See stack trace above for root cause issue.
+=== Step 5: Analysis Backward Test ===
+=== Backward Test Completed Successfully ===

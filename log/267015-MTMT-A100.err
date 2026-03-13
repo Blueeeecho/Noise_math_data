@@ -1,0 +1,73 @@
+Generating train split: 0 examples [00:00, ? examples/s]Generating train split: 90 examples [00:00, 3267.07 examples/s]
+Generating test split: 0 examples [00:00, ? examples/s]Generating test split: 10 examples [00:00, 1160.92 examples/s]
+Map:   0%|          | 0/90 [00:00<?, ? examples/s]Map: 100%|██████████| 90/90 [00:00<00:00, 1710.48 examples/s]
+Map:   0%|          | 0/10 [00:00<?, ? examples/s]Map: 100%|██████████| 10/10 [00:00<00:00, 329.40 examples/s]
+`torch_dtype` is deprecated! Use `dtype` instead!
+Tokenizing train dataset:   0%|          | 0/90 [00:00<?, ? examples/s]Tokenizing train dataset:  43%|████▎     | 39/90 [00:00<00:00, 381.70 examples/s]Tokenizing train dataset: 100%|██████████| 90/90 [00:00<00:00, 429.34 examples/s]
+Truncating train dataset:   0%|          | 0/90 [00:00<?, ? examples/s]Truncating train dataset: 100%|██████████| 90/90 [00:00<00:00, 2617.19 examples/s]
+Tokenizing eval dataset:   0%|          | 0/10 [00:00<?, ? examples/s]Tokenizing eval dataset: 100%|██████████| 10/10 [00:00<00:00, 257.18 examples/s]
+Truncating eval dataset:   0%|          | 0/10 [00:00<?, ? examples/s]Truncating eval dataset: 100%|██████████| 10/10 [00:00<00:00, 24.05 examples/s]
+The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'bos_token_id': None, 'pad_token_id': 151643}.
+  0%|          | 0/2 [00:00<?, ?it/s] 50%|█████     | 1/2 [00:12<00:12, 12.65s/it]                                              50%|█████     | 1/2 [00:12<00:12, 12.65s/it]100%|██████████| 2/2 [00:14<00:00,  6.11s/it]                                             100%|██████████| 2/2 [00:14<00:00,  6.11s/it]                                             100%|██████████| 2/2 [00:14<00:00,  6.11s/it]100%|██████████| 2/2 [00:14<00:00,  7.10s/it]
+Evaluating:   0%|          | 0/2 [00:00<?, ?it/s]The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+A decoder-only architecture is being used, but right-padding was detected! For correct generation results, please set `padding_side='left'` when initializing the tokenizer.
+Evaluating:  50%|█████     | 1/2 [00:08<00:08,  8.39s/it]A decoder-only architecture is being used, but right-padding was detected! For correct generation results, please set `padding_side='left'` when initializing the tokenizer.
+Evaluating: 100%|██████████| 2/2 [00:14<00:00,  7.07s/it]Evaluating: 100%|██████████| 2/2 [00:14<00:00,  7.27s/it]
+Exception ignored in: <function ResourceTracker.__del__ at 0x1553b6de6520>
+Traceback (most recent call last):
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/multiprocess/resource_tracker.py", line 80, in __del__
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/multiprocess/resource_tracker.py", line 89, in _stop
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/multiprocess/resource_tracker.py", line 102, in _stop_locked
+AttributeError: '_thread.RLock' object has no attribute '_recursion_count'
+Traceback (most recent call last):
+  File "/export/home/asifali/Noise_math_data/rl/train_verl.py", line 48, in <module>
+    main()
+  File "/export/home/asifali/Noise_math_data/rl/train_verl.py", line 45, in main
+    verl_main_ppo()
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/main.py", line 94, in decorated_main
+    _run_hydra(
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+    _run_app(
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+    run_and_report(
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/_internal/utils.py", line 223, in run_and_report
+    raise ex
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+    return func()
+           ^^^^^^
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+    lambda: hydra.run(
+            ^^^^^^^^^^
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/_internal/hydra.py", line 105, in run
+    cfg = self.compose_config(
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/_internal/hydra.py", line 594, in compose_config
+    cfg = self.config_loader.load_configuration(
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/_internal/config_loader_impl.py", line 142, in load_configuration
+    return self._load_configuration_impl(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/_internal/config_loader_impl.py", line 276, in _load_configuration_impl
+    ConfigLoaderImpl._apply_overrides_to_config(config_overrides, cfg)
+  File "/export/home/asifali/anaconda3/envs/noisymaths/lib/python3.12/site-packages/hydra/_internal/config_loader_impl.py", line 377, in _apply_overrides_to_config
+    raise ConfigCompositionException(
+hydra.errors.ConfigCompositionException: Could not append to config. An item is already at 'actor_rollout_ref.model.lora_rank'.
+Either remove + prefix: 'actor_rollout_ref.model.lora_rank=16'
+Or add a second + to add or override 'actor_rollout_ref.model.lora_rank': '++actor_rollout_ref.model.lora_rank=16'
+
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.63it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.63it/s]
+
+/cm/local/apps/slurm/var/spool/job267015/slurm_script: line 188: 2244222 Killed                  python "$EVAL_DIR/eval_model.py" --model_path "$OUTPUT_DIR/sft_model" --base_model_path "$MODEL_PATH" --data_path "$OUTPUT_DIR/test.jsonl" --output_dir "$OUTPUT_DIR/eval_result" --max_tokens 256
+Traceback (most recent call last):
+  File "/export/home/asifali/Noise_math_data/analysis/analyze_results.py", line 107, in <module>
+    main()
+  File "/export/home/asifali/Noise_math_data/analysis/analyze_results.py", line 98, in main
+    results = read_jsonl(args.results_file)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/export/home/asifali/Noise_math_data/analysis/analyze_results.py", line 8, in read_jsonl
+    with open(path, 'r', encoding='utf-8') as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/export/home/asifali/Noise_math_data/output_backward/eval_result/results.jsonl'

@@ -1,0 +1,118 @@
+Wed Mar 11 11:19:36 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 575.57.08              Driver Version: 575.57.08      CUDA Version: 12.9     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100 80GB PCIe          On  |   00000000:17:00.0 Off |                    0 |
+| N/A   53C    P0             55W /  300W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   1  NVIDIA A100 80GB PCIe          On  |   00000000:65:00.0 Off |                    0 |
+| N/A   52C    P0             61W /  300W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   2  NVIDIA A100 80GB PCIe          On  |   00000000:CA:00.0 Off |                    0 |
+| N/A   54C    P0             61W /  300W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   3  NVIDIA A100 80GB PCIe          On  |   00000000:E3:00.0 Off |                    0 |
+| N/A   57C    P0             62W /  300W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+Python Path = /export/home/asifali/Noise_math_data/:
+=== Step 1: Prepare Backward Data ===
+Reading from /export/home/asifali/Noise_math_data/data/all_backward_data.jsonl...
+Loaded 100 samples (max 100).
+Saved 90 training samples to /export/home/asifali/Noise_math_data/output_backward/train.jsonl
+Saved 10 test samples to /export/home/asifali/Noise_math_data/output_backward/test.jsonl
+=== Step 2: SFT Backward Test ===
+=== Step 3: RL Backward Test ===
+Converted 90 records to /export/home/asifali/Noise_math_data/output_backward/rl_train.parquet
+Converted 10 records to /export/home/asifali/Noise_math_data/output_backward/rl_test.parquet
+=== Step 4: Eval Backward Test ===
+INFO 03-11 11:20:27 [__init__.py:239] Automatically detected platform cuda.
+Loading model from /export/home/asifali/Noise_math_data/output_backward/sft_model
+Loading LoRA adapter from /export/home/asifali/Noise_math_data/output_backward/sft_model on top of /export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct
+INFO 03-11 11:20:46 [config.py:600] This model supports multiple tasks: {'reward', 'generate', 'embed', 'classify', 'score'}. Defaulting to 'generate'.
+INFO 03-11 11:20:46 [config.py:1780] Chunked prefill is enabled with max_num_batched_tokens=8192.
+WARNING 03-11 11:20:46 [cuda.py:96] To see benefits of async output processing, enable CUDA graph. Since, enforce-eager is enabled, async output processor cannot be used
+WARNING 03-11 11:20:46 [config.py:2468] LoRA with chunked prefill is still experimental and may be unstable.
+INFO 03-11 11:20:46 [core.py:61] Initializing a V1 LLM engine (v0.8.3) with config: model='/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct', speculative_config=None, tokenizer='/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, override_neuron_config=None, tokenizer_revision=None, trust_remote_code=True, dtype=torch.bfloat16, max_seq_len=32768, download_dir=None, load_format=LoadFormat.AUTO, tensor_parallel_size=1, pipeline_parallel_size=1, disable_custom_all_reduce=False, quantization=None, enforce_eager=True, kv_cache_dtype=auto,  device_config=cuda, decoding_config=DecodingConfig(guided_decoding_backend='xgrammar', reasoning_backend=None), observability_config=ObservabilityConfig(show_hidden_metrics=False, otlp_traces_endpoint=None, collect_model_forward_time=False, collect_model_execute_time=False), seed=None, served_model_name=/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct, num_scheduler_steps=1, multi_step_stream_outputs=True, enable_prefix_caching=True, chunked_prefill_enabled=True, use_async_output_proc=False, disable_mm_preprocessor_cache=False, mm_processor_kwargs=None, pooler_config=None, compilation_config={"splitting_ops":[],"compile_sizes":[],"cudagraph_capture_sizes":[],"max_capture_size":0}
+WARNING 03-11 11:20:47 [utils.py:2413] Methods determine_num_available_blocks,device_config,get_cache_block_size_bytes,initialize_cache not implemented in <vllm.v1.worker.gpu_worker.Worker object at 0x15548c66b3b0>
+INFO 03-11 11:20:48 [parallel_state.py:957] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, TP rank 0
+INFO 03-11 11:20:48 [cuda.py:221] Using Flash Attention backend on V1 engine.
+INFO 03-11 11:20:49 [gpu_model_runner.py:1258] Starting to load model /export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct...
+WARNING 03-11 11:20:49 [topk_topp_sampler.py:69] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.
+INFO 03-11 11:20:50 [loader.py:447] Loading weights took 1.08 seconds
+INFO 03-11 11:20:50 [punica_selector.py:18] Using PunicaWrapperGPU.
+INFO 03-11 11:20:50 [gpu_model_runner.py:1273] Model loading took 3.0567 GiB and 1.428419 seconds
+ERROR 03-11 11:20:50 [core.py:390] EngineCore hit an exception: Traceback (most recent call last):
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 378, in run_engine_core
+ERROR 03-11 11:20:50 [core.py:390]     engine_core = EngineCoreProc(*args, **kwargs)
+ERROR 03-11 11:20:50 [core.py:390]                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 319, in __init__
+ERROR 03-11 11:20:50 [core.py:390]     super().__init__(vllm_config, executor_class, log_stats)
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 71, in __init__
+ERROR 03-11 11:20:50 [core.py:390]     self._initialize_kv_caches(vllm_config)
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/v1/engine/core.py", line 132, in _initialize_kv_caches
+ERROR 03-11 11:20:50 [core.py:390]     available_gpu_memory = self.model_executor.determine_available_memory()
+ERROR 03-11 11:20:50 [core.py:390]                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/v1/executor/abstract.py", line 66, in determine_available_memory
+ERROR 03-11 11:20:50 [core.py:390]     output = self.collective_rpc("determine_available_memory")
+ERROR 03-11 11:20:50 [core.py:390]              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/executor/uniproc_executor.py", line 56, in collective_rpc
+ERROR 03-11 11:20:50 [core.py:390]     answer = run_method(self.driver_worker, method, args, kwargs)
+ERROR 03-11 11:20:50 [core.py:390]              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/utils.py", line 2347, in run_method
+ERROR 03-11 11:20:50 [core.py:390]     return func(*args, **kwargs)
+ERROR 03-11 11:20:50 [core.py:390]            ^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+ERROR 03-11 11:20:50 [core.py:390]     return func(*args, **kwargs)
+ERROR 03-11 11:20:50 [core.py:390]            ^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/v1/worker/gpu_worker.py", line 157, in determine_available_memory
+ERROR 03-11 11:20:50 [core.py:390]     self.model_runner.profile_run()
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/v1/worker/gpu_model_runner.py", line 1573, in profile_run
+ERROR 03-11 11:20:50 [core.py:390]     hidden_states = self._dummy_run(self.max_num_tokens)
+ERROR 03-11 11:20:50 [core.py:390]                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+ERROR 03-11 11:20:50 [core.py:390]     return func(*args, **kwargs)
+ERROR 03-11 11:20:50 [core.py:390]            ^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/v1/worker/gpu_model_runner.py", line 1392, in _dummy_run
+ERROR 03-11 11:20:50 [core.py:390]     with self.maybe_dummy_run_with_lora(self.lora_config,
+ERROR 03-11 11:20:50 [core.py:390]          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/contextlib.py", line 137, in __enter__
+ERROR 03-11 11:20:50 [core.py:390]     return next(self.gen)
+ERROR 03-11 11:20:50 [core.py:390]            ^^^^^^^^^^^^^^
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/v1/worker/lora_model_runner_mixin.py", line 122, in maybe_dummy_run_with_lora
+ERROR 03-11 11:20:50 [core.py:390]     self._set_active_loras(tuple(prompt_lora_mapping),
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/v1/worker/lora_model_runner_mixin.py", line 72, in _set_active_loras
+ERROR 03-11 11:20:50 [core.py:390]     self.lora_manager.set_active_adapters(lora_requests, lora_mapping)
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/lora/worker_manager.py", line 167, in set_active_adapters
+ERROR 03-11 11:20:50 [core.py:390]     set_active_adapters_worker(requests, mapping, self._apply_adapters,
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/adapter_commons/utils.py", line 54, in set_active_adapters_worker
+ERROR 03-11 11:20:50 [core.py:390]     apply_adapters_func(requests)
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/lora/worker_manager.py", line 227, in _apply_adapters
+ERROR 03-11 11:20:50 [core.py:390]     self.add_adapter(lora)
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/lora/worker_manager.py", line 250, in add_adapter
+ERROR 03-11 11:20:50 [core.py:390]     self._adapter_manager.activate_adapter(lora_request.lora_int_id)
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/lora/models.py", line 752, in activate_adapter
+ERROR 03-11 11:20:50 [core.py:390]     self._active_adapters.touch(lora_id)
+ERROR 03-11 11:20:50 [core.py:390]   File "/export/home/asifali/anaconda3/envs/Reasoning360/lib/python3.12/site-packages/vllm/utils.py", line 275, in touch
+ERROR 03-11 11:20:50 [core.py:390]     self._LRUCache__update(key)  # type: ignore
+ERROR 03-11 11:20:50 [core.py:390]     ^^^^^^^^^^^^^^^^^^^^^^
+ERROR 03-11 11:20:50 [core.py:390] AttributeError: 'LoRALRUCache' object has no attribute '_LRUCache__update'. Did you mean: '_LRUCache__order'?
+ERROR 03-11 11:20:50 [core.py:390] 
+CRITICAL 03-11 11:20:50 [core_client.py:361] Got fatal signal from worker processes, shutting down. See stack trace above for root cause issue.
+=== Step 5: Analysis Backward Test ===
+=== Backward Test Completed Successfully ===

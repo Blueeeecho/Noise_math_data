@@ -30,8 +30,7 @@ export PYTHONPATH="/export/home/asifali/Noise_math_data/:${PYTHONPATH:-}"
 echo "Python Path = ${PYTHONPATH}"
 
 
-=======
->>>>>>> 348548e1bf00ec151578e12cce7a83ecb246f999
+
 # =================== User-Configurable Settings ===================
 # --- Execution Environment ---
 NUM_GPUS=4 # Set the number of GPUs to use on this node

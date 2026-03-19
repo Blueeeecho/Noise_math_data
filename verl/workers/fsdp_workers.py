@@ -251,7 +251,8 @@ class ActorRolloutRefWorker(Worker, DistProfilerExtension):
 
         # override model kwargs
         actor_model_config = AutoConfig.from_pretrained(
-            local_path, trust_remote_code=trust_remote_code, attn_implementation="flash_attention_2"
+            local_path, trust_remote_code=trust_remote_code
+            # , attn_implementation="flash_attention_2" # remove to avoid flash attn error
         )
 
         # patch for kimi-vl
@@ -1014,7 +1015,7 @@ class CriticWorker(Worker, DistProfilerExtension):
 
         critic_model_config = AutoConfig.from_pretrained(
             local_path,
-            attn_implementation="flash_attention_2",
+            # attn_implementation="flash_attention_2", # remove to avoid flash attn error
             trust_remote_code=config.model.get("trust_remote_code", False),
         )
         critic_model_config.num_labels = 1

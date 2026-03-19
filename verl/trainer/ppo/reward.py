@@ -109,22 +109,25 @@ def load_reward_manager(config, tokenizer, num_examine, **reward_kwargs):
 
     # Try to get a custom reward function based on the configuration
     compute_score = get_custom_reward_fn(config)
-    final_compute_score = compute_score
-
-    if compute_score is None:
+    if compute_score is not None:
+        final_compute_score = compute_score
+    else:
         sandbox_config = config.reward_model.get("sandbox_fusion")
-        sandbox_url = sandbox_config.get("url") if sandbox_config else None
-        memory_limit_mb = sandbox_config.get("memory_limit_mb", 1024)
-        if sandbox_url:
-            sandbox_manager = multiprocessing.Manager()
-            # Create a semaphore to control concurrent access to the sandbox
-            _concurrent_semaphore = sandbox_manager.Semaphore(sandbox_config.get("max_concurrent", 64))
-            final_compute_score = partial(
-                default_compute_score,
-                sandbox_fusion_url=sandbox_url,
-                concurrent_semaphore=_concurrent_semaphore,
-                memory_limit_mb=memory_limit_mb,
-            )
+        if sandbox_config:
+            sandbox_url = sandbox_config.get("url")
+            memory_limit_mb = sandbox_config.get("memory_limit_mb", 1024)
+            if sandbox_url:
+                sandbox_manager = multiprocessing.Manager()
+                # Create a semaphore to control concurrent access to the sandbox
+                _concurrent_semaphore = sandbox_manager.Semaphore(sandbox_config.get("max_concurrent", 64))
+                final_compute_score = partial(
+                    default_compute_score,
+                    sandbox_fusion_url=sandbox_url,
+                    concurrent_semaphore=_concurrent_semaphore,
+                    memory_limit_mb=memory_limit_mb,
+                )
+            else:
+                final_compute_score = default_compute_score
         else:
             final_compute_score = default_compute_score
 
@@ -133,7 +136,7 @@ def load_reward_manager(config, tokenizer, num_examine, **reward_kwargs):
         tokenizer=tokenizer,
         num_examine=num_examine,
         compute_score=final_compute_score,
-        reward_fn_key=config.data.reward_fn_key,
+        reward_fn_key=config.data.get("reward_fn_key", "reward"),
         **reward_kwargs,
     )
 

@@ -1,0 +1,108 @@
+data:
+  train_files: /root/autodl-tmp/Reasoning360/data/noise_math/train.parquet
+  val_files: /root/autodl-tmp/Reasoning360/data/noise_math/test.parquet
+  prompt_key: prompt
+  response_key: response
+  max_prompt_length: 512
+  max_response_length: 512
+  rollout_batch_size: 16
+  shuffle: True
+
+actor_rollout_ref:
+  hybrid_engine: True
+  model:
+    path: /root/autodl-tmp/model/Qwen2.5-0.5B-Instruct
+    use_remove_padding: True
+    enable_gradient_checkpointing: True
+    use_fused_kernels: False # Disable for small model/compatibility
+  actor:
+    strategy: fsdp  # FSDP works well even on single GPU (similar to DDP)
+    ppo_mini_batch_size: 4
+    ppo_micro_batch_size: 2
+    use_kl_loss: True
+    kl_loss_coef: 0.001
+    kl_loss_type: low_var_kl
+    ppo_epochs: 1
+    shuffle: True
+    optim:
+      lr: 1e-6
+      lr_warmup_steps_ratio: 0.0  # the total steps will be injected during runtime
+      min_lr_ratio: null   # the total steps will be injected during runtime
+      warmup_style: constant  # constant
+      total_training_steps: -1  # -1 means use trainer.total_training_steps
+    fsdp_config:
+      wrap_policy:
+        # This should match the transformer layer class name of your model
+        min_num_params: 0
+        transformer_layer_cls_to_wrap: Qwen2DecoderLayer
+  ref:
+    fsdp_config:
+      wrap_policy:
+        min_num_params: 0
+        transformer_layer_cls_to_wrap: Qwen2DecoderLayer
+  rollout:
+    temperature: 0.7
+    top_k: -1 # 0.0
+    top_p: 1.0
+    prompt_length: 512  # for kl divergence calculation
+    response_length: 512
+    # for rollout, we can use a larger batch size
+    log_prob_micro_batch_size: 4
+    tensor_model_parallel_size: 1
+    name: vllm
+    gpu_memory_utilization: 0.4
+    n: 1 # number of sequences to generate
+
+critic:
+  strategy: fsdp
+  optim:
+    lr: 1e-5
+    lr_warmup_steps_ratio: 0.0  # the total steps will be injected during runtime
+    min_lr_ratio: null   # the total steps will be injected during runtime
+    warmup_style: constant  # constant
+    total_training_steps: -1  # -1 means use trainer.total_training_steps
+  model:
+    path: /root/autodl-tmp/model/Qwen2.5-0.5B-Instruct
+    enable_gradient_checkpointing: True
+    use_remove_padding: True
+    fsdp_config:
+      wrap_policy:
+        min_num_params: 0
+        transformer_layer_cls_to_wrap: Qwen2DecoderLayer
+  ppo_mini_batch_size: 4
+  ppo_micro_batch_size: 2
+  shuffle: True
+
+reward_model:
+  enable: True
+  reward_manager: naive
+  custom_reward_function:
+    path: /root/autodl-tmp/Noise_math_data/rl/reward_fn.py
+    name: compute_reward
+    reward_kwargs:
+      w_format: 0.5
+      w_process: 1.0
+      w_outcome: 2.5
+  ppo_mini_batch_size: 4
+  ppo_micro_batch_size: 2
+
+algorithm:
+  gamma: 1.0
+  lam: 1.0
+  adv_estimator: gae
+  kl_penalty: kl
+  kl_ctrl:
+    type: fixed
+    kl_coef: 0.001
+
+trainer:
+  total_epochs: 1 # Run 1 epoch for testing
+  project_name: noise_math_local
+  experiment_name: qwen2.5-0.5b-ppo
+  n_gpus_per_node: 1
+  nnodes: 1
+  save_freq: 10
+  test_freq: 10
+  val_before_train: False # Skip initial validation to save time
+  val_only: False
+  logger: ['console']

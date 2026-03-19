@@ -35,7 +35,10 @@ from verl.utils.ulysses import gather_outputs_and_unpad, ulysses_pad_and_slice_i
 from verl.workers.critic import BasePPOCritic
 
 if is_cuda_available:
-    from flash_attn.bert_padding import index_first_axis, pad_input, rearrange, unpad_input
+    try:
+        from flash_attn.bert_padding import index_first_axis, pad_input, rearrange, unpad_input
+    except ImportError:
+        pass # Allow running without flash_attn if use_remove_padding is False
 elif is_npu_available:
     from transformers.integrations.npu_flash_attention import index_first_axis, pad_input, rearrange, unpad_input
 

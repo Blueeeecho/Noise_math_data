@@ -51,7 +51,7 @@ install_requires = [
 TEST_REQUIRES = ["pytest", "pre-commit", "py-spy", "pytest-asyncio"]
 PRIME_REQUIRES = ["pyext"]
 GEO_REQUIRES = ["mathruler", "torchvision", "qwen_vl_utils"]
-GPU_REQUIRES = ["liger-kernel", "flash-attn", "nvitop",]    # NOTE: nvitop is added by Reasoning360
+GPU_REQUIRES = ["liger-kernel", "nvitop",]    # NOTE: nvitop is added by Reasoning360 (flash-attn removed)
 MATH_REQUIRES = ["math-verify"]  # Add math-verify as an optional dependency
 VLLM_REQUIRES = ["tensordict>=0.8.0,<=0.9.1,!=0.9.0", "vllm>=0.7.3,<=0.8.5"]
 SGLANG_REQUIRES = [

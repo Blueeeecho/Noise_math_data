@@ -1432,8 +1432,9 @@ class RayPPOTrainer:
                     self.train_dataloader.sampler.update(batch=batch)
 
                 # TODO: make a canonical logger that supports various backend
-                logger.log(data=metrics, step=self.global_steps)
-
+                #logger.log(data=metrics, step=self.global_steps)
+                print(json.dumps(metrics, indent=2, sort_keys=True))
+                print()
                 progress_bar.update(1)
                 self.global_steps += 1
                 if is_last_step:

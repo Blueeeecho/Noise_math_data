@@ -34,3 +34,6 @@ examples/noise_math/dataset/Processed/
 # Ray and other logs
 /tmp/ray/
 *.log
+*.err
+*.out
+/all_logs/

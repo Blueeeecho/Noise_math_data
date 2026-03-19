@@ -63,7 +63,7 @@ echo "NOFILE=$(ulimit -n)"
 # ==================== All INPUTS =================================
 TRAIN_TEMP=$1
 TEST_TEMP=$2
-SYSTEM_NAME="${3}"
+SYSTEM_NAME=$3
 
 
 echo "Submitted job: TRAIN-TEMP=$TRAIN_TEMP, TEST-TEMP=$TEST_TEMP, SYSTEM_NAME=$SYSTEM_NAME"

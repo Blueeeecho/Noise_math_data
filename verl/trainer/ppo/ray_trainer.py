@@ -1441,7 +1441,7 @@ class RayPPOTrainer:
                 print(f"Epoch {epoch + 1} Time Lapsed: {elapsed:.2f}s")
                 print()
                 #logger.log(data=metrics, step=self.global_steps)
-                print(json.dumps(metrics, indent=2, sort_keys=True))
+                print(json.dumps(metrics, indent=2, sort_keys=True, default=str))
                 print()
 
                 if is_last_step:

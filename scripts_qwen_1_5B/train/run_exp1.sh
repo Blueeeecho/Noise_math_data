@@ -184,7 +184,7 @@ max_num_gen_batches=10
 #train_prompt_mini_bsz=4  # model grad update batchsize
 
 
-train_prompt_bsz=120  # on-policy model update batchsize: train_prompt_bsz * rollout.n
+train_prompt_bsz=600  # on-policy model update batchsize: train_prompt_bsz * rollout.n
 gen_prompt_bsz=$((train_prompt_bsz * 1))
 
 
@@ -223,8 +223,8 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.model.use_remove_padding=False \
     actor_rollout_ref.actor.ppo_mini_batch_size=4 \
     actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=2 \
-    actor_rollout_ref.actor.use_kl_loss=True \
-    actor_rollout_ref.actor.kl_loss_coef=0.001 \
+    actor_rollout_ref.actor.use_kl_loss=${use_kl_loss} \
+    actor_rollout_ref.actor.kl_loss_coef=${kl_loss_coef} \
     actor_rollout_ref.actor.kl_loss_type=low_var_kl \
     actor_rollout_ref.actor.entropy_coeff=0 \
     actor_rollout_ref.model.enable_gradient_checkpointing=True \
@@ -256,9 +256,9 @@ python3 -m verl.trainer.main_ppo \
     trainer.default_local_dir="/export/home/asifali/Noise_math_data/examples/noise_math/Output/checkpoints" \
     trainer.n_gpus_per_node=${NUM_GPUS} \
     trainer.nnodes=1 \
-    trainer.save_freq=10 \
+    trainer.save_freq=1000 \
     trainer.max_actor_ckpt_to_keep=1 \
     trainer.max_critic_ckpt_to_keep=1 \
     trainer.test_freq=10 \
     trainer.val_before_train=True \
-    trainer.total_epochs=50
+    trainer.total_epochs=500

@@ -188,7 +188,27 @@ train_prompt_bsz=120  # on-policy model update batchsize: train_prompt_bsz * rol
 gen_prompt_bsz=$((train_prompt_bsz * 1))
 
 
+# Algorithm
+top_p=0.9
+top_k=-1 # 0 for HF rollout, -1 for vLLM rollout
 
+# Training config
+# NOTE: sp_size and gen_tp are parallelism settings.
+# sp_size: Sequence Parallelism size.
+# gen_tp: Tensor Parallelism size for vLLM generation.
+# For a 32B model on 8 GPUs, TP=2 is a reasonable starting point. Adjust if you have memory issues.
+sp_size=1
+gen_tp=${NUM_GPUS}
+gen_max_num_seqs=1024
+infer_micro_batch_size=null
+train_micro_batch_size=null
+use_dynamic_bsz=True
+actor_ppo_max_token_len=$(( (max_prompt_length + max_response_length) * 2))  # increase this to speed up model forward & backward but note memory overflow
+infer_ppo_max_token_len=$(( (max_prompt_length + max_response_length) * 2))  # increase this to speed up model forward, but note memory overflow
+offload=True
+
+
+echo "Starting training..."
 python3 -m verl.trainer.main_ppo \
     algorithm.adv_estimator=${adv_estimator} \
     data.train_files="/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed/train.parquet" \
@@ -215,6 +235,12 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.name=vllm \
     actor_rollout_ref.rollout.enforce_eager=False \
+    actor_rollout_ref.rollout.temperature=${TRAIN_TEMP} \
+    actor_rollout_ref.rollout.top_p=${top_p} \
+    actor_rollout_ref.rollout.top_k=${top_k} \
+    actor_rollout_ref.rollout.val_kwargs.top_k=${top_k} \
+    actor_rollout_ref.rollout.val_kwargs.top_p=${top_p}\
+    actor_rollout_ref.rollout.val_kwargs.temperature=${TEST_TEMP} \
     actor_rollout_ref.rollout.gpu_memory_utilization=${gpu_memory_utilization} \
     actor_rollout_ref.rollout.n=4 \
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=2 \

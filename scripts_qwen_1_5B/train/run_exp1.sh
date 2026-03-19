@@ -84,7 +84,6 @@ RESUME_CKPT_DIR_NAME=""  # Fill in the W&B experiment name to resume from, other
 WANDB_PROJECT="EXP1_Noisy_data_A100" # Your wandb project name
 
 # --- External Services ---
-export STEM_LLM_JUDGE_URL="<STEM_LLM_JUDGE_URL>"  # Optional: Fill in the llm-as-judge hosted URL for 'STEM' domain evaluation
 export WANDB_API_KEY="64305b88cc27033d4132d6ce147ecce132e6955d"
 
 # =================== Environment Setup ==============================
@@ -133,7 +132,7 @@ export SWITCH_EPOCH=${SWITCH_EPOCH}
 # Ensure data exists
 if [ ! -f "/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed/train.parquet" ]; then
     echo "Data not found. Running prepare_data.sh..."
-    bash /export/home/asifali/Noise_math_data/examples/noise_math/scripts/prepare_data.sh
+    bash /export/home/asifali/Noise_math_data/scripts_qwen_1_5B/train/prepare_data.sh
 fi
 
 echo "Starting GRPO Training on 4 x A100 GPUs"

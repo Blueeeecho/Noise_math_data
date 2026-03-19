@@ -151,13 +151,51 @@ if [ ! -d "$BASE_MODEL_PATH" ]; then
     BASE_MODEL_PATH="/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct"
 fi
 
+# =================== RL Config ===================
+# Note, we borrowed the config format from DAPO while here disabled all DAPO features to run the naive RL baseline.
+
+adv_estimator=grpo
+
+use_kl_in_reward=False
+kl_coef=0.0
+use_kl_loss=False
+kl_loss_coef=0.0
+
+
+clip_ratio_low=0.2
+clip_ratio_high=0.2
+
+max_prompt_length=$((1024 * 1))
+max_response_length=$((1024 * 1))
+enable_overlong_buffer=False
+overlong_buffer_len=$((1024 * 4))
+overlong_penalty_factor=1.0
+
+loss_agg_mode="token-mean"
+
+enable_filter_groups=False
+filter_groups_metric=acc
+max_num_gen_batches=10
+
+
+#train_prompt_bsz=32  # on-policy model update batchsize: train_prompt_bsz * rollout.n
+#gen_prompt_bsz=$((train_prompt_bsz * 1))
+#n_resp_per_prompt=4
+#train_prompt_mini_bsz=4  # model grad update batchsize
+
+
+train_prompt_bsz=120  # on-policy model update batchsize: train_prompt_bsz * rollout.n
+gen_prompt_bsz=$((train_prompt_bsz * 1))
+
+
+
 python3 -m verl.trainer.main_ppo \
-    algorithm.adv_estimator=grpo \
+    algorithm.adv_estimator=${adv_estimator} \
     data.train_files="/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed/train.parquet" \
     data.val_files="/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed/test.parquet" \
-    data.train_batch_size=16 \
-    data.max_prompt_length=512 \
-    data.max_response_length=512 \
+    data.train_batch_size=${train_prompt_bsz} \
+    data.max_prompt_length=${max_prompt_length} \
+    data.max_response_length=${max_response_length} \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
     actor_rollout_ref.model.path="$BASE_MODEL_PATH" \
@@ -176,7 +214,8 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=2 \
     actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.name=vllm \
-    actor_rollout_ref.rollout.gpu_memory_utilization=0.7 \
+    actor_rollout_ref.rollout.enforce_eager=False \
+    actor_rollout_ref.rollout.gpu_memory_utilization=${gpu_memory_utilization} \
     actor_rollout_ref.rollout.n=4 \
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=2 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
@@ -189,10 +228,11 @@ python3 -m verl.trainer.main_ppo \
     trainer.project_name='noise_math_local_grpo' \
     trainer.experiment_name='qwen2.5-1.5b-grpo-test' \
     trainer.default_local_dir="/export/home/asifali/Noise_math_data/examples/noise_math/Output/checkpoints" \
-    trainer.n_gpus_per_node=1 \
+    trainer.n_gpus_per_node=${NUM_GPUS} \
     trainer.nnodes=1 \
     trainer.save_freq=10 \
+    trainer.max_actor_ckpt_to_keep=1 \
+    trainer.max_critic_ckpt_to_keep=1 \
     trainer.test_freq=10 \
-    trainer.val_before_train=False \
-    trainer.total_epochs=1 \
-    ray_init.num_cpus=8
+    trainer.val_before_train=True \
+    trainer.total_epochs=50

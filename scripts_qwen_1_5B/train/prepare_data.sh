@@ -2,13 +2,13 @@
 set -e
 
 # Create data directory
-DATA_DIR="/root/autodl-tmp/Reasoning360/examples/noise_math/dataset/Processed"
+DATA_DIR="/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed"
 mkdir -p "$DATA_DIR"
 
 echo "Preparing data for Noise Math training using internal converter..."
 
 # Input data path
-INPUT_FILE="/root/autodl-tmp/Reasoning360/examples/noise_math/dataset/Ours/all_backward_data.jsonl"
+INPUT_FILE="/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Ours/all_backward_data.jsonl"
 
 if [ ! -f "$INPUT_FILE" ]; then
     echo "Error: Input file $INPUT_FILE not found!"
@@ -19,12 +19,12 @@ fi
 # In a real scenario, you should have separate train.jsonl and test.jsonl
 
 echo "Converting $INPUT_FILE to $DATA_DIR/train.parquet"
-python /root/autodl-tmp/Reasoning360/examples/noise_math/convert_data_noise.py \
+python /export/home/asifali/Noise_math_data/examples/noise_math/convert_data_noise.py \
     --input "$INPUT_FILE" \
     --output "$DATA_DIR/train.parquet"
 
 echo "Converting $INPUT_FILE to $DATA_DIR/test.parquet"
-python /root/autodl-tmp/Reasoning360/examples/noise_math/convert_data_noise.py \
+python /export/home/asifali/Noise_math_data/examples/noise_math/convert_data_noise.py \
     --input "$INPUT_FILE" \
     --output "$DATA_DIR/test.parquet"
 

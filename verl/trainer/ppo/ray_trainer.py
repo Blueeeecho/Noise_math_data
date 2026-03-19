@@ -21,6 +21,7 @@ This trainer supports model-agonistic model initialization with huggingface
 import json
 import os
 import uuid
+import time
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -1155,6 +1156,7 @@ class RayPPOTrainer:
         self.max_steps_duration = 0
 
         for epoch in range(self.config.trainer.total_epochs):
+            start = time.perf_counter()
             for batch_dict in self.train_dataloader:
                 metrics = {}
                 timing_raw = {}
@@ -1432,11 +1434,16 @@ class RayPPOTrainer:
                     self.train_dataloader.sampler.update(batch=batch)
 
                 # TODO: make a canonical logger that supports various backend
+
+                progress_bar.update(1)
+                self.global_steps += 1
+                elapsed = time.perf_counter() - start
+                print(f"Epoch {epoch + 1} Time Lapsed: {elapsed:.2f}s")
+                print()
                 #logger.log(data=metrics, step=self.global_steps)
                 print(json.dumps(metrics, indent=2, sort_keys=True))
                 print()
-                progress_bar.update(1)
-                self.global_steps += 1
+
                 if is_last_step:
                     pprint(f"Final validation metrics: {last_val_metrics}")
                     progress_bar.close()

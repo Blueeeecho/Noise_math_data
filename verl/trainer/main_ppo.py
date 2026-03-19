@@ -29,6 +29,8 @@ from verl.trainer.ppo.reward import load_reward_manager
 from verl.utils.device import is_cuda_available
 from verl.utils.import_utils import load_extern_type
 
+job_id = os.getenv("SLURM_JOB_ID")
+print("SLURM Job ID:", job_id)
 
 @hydra.main(config_path="config", config_name="ppo_trainer", version_base=None)
 def main(config):

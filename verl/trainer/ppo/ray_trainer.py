@@ -689,7 +689,13 @@ class RayPPOTrainer:
         sample_outputs = []
         sample_scores = []
         sample_turns = []
+        sample_golds = []
 
+        import sys
+        
+        total_batches = len(self.val_dataloader)
+        print(f"\n[Validation] Starting evaluation for Global Step {self.global_steps}. Sending data to vLLM for generation (Total batches: {total_batches}). This may take several minutes...", flush=True)
+        
         for test_data in self.val_dataloader:
             test_batch = DataProto.from_single_dict(test_data)
             # NOTE: print statements in this loop added by Reasoning360 are temporarily disabled
@@ -752,7 +758,7 @@ class RayPPOTrainer:
             # unpad
             test_output_gen_batch = unpad_dataproto(test_output_gen_batch_padded, pad_size=pad_size)
 
-            print("validation generation end")
+            print("[Validation] vLLM generation completed for this batch.", flush=True)
 
             # Store generated outputs
             output_ids = test_output_gen_batch.batch["responses"]
@@ -771,11 +777,9 @@ class RayPPOTrainer:
             sample_scores.extend(scores)
 
             reward_extra_infos_dict["reward"].extend(scores)
-            print(f"len reward_extra_infos_dict['reward']: {len(reward_extra_infos_dict['reward'])}")
             if "reward_extra_info" in result:
                 for key, lst in result["reward_extra_info"].items():
                     reward_extra_infos_dict[key].extend(lst)
-                    print(f"len reward_extra_infos_dict['{key}']: {len(reward_extra_infos_dict[key])}")
 
             # NOTE: Added by Reasoning360: Collect dataset information. TODO: maybe replicated usage with the data_source_lst and can be removed?
             datasets = []
@@ -786,6 +790,15 @@ class RayPPOTrainer:
                     if isinstance(extra_info, dict) and "dataset" in extra_info:
                         dataset = extra_info["dataset"]
                 datasets.append(dataset)
+                
+                # Also collect gold answers for exact match evaluation
+                gold = None
+                if "reward_model" in test_batch.non_tensor_batch:
+                    rm_dict = test_batch.non_tensor_batch["reward_model"][i]
+                    if isinstance(rm_dict, dict) and "ground_truth" in rm_dict:
+                        gold = rm_dict["ground_truth"].get("gold_answer", None)
+                sample_golds.append(gold)
+                
             dataset_lst.append(np.array(datasets))
 
             # collect num_turns of each prompt
@@ -854,6 +867,76 @@ class RayPPOTrainer:
         for (data_source, dataset), rewards in data_source_dataset_reward.items():
             metric_dict[f"val/test_score/{data_source}/{dataset}"] = np.mean(rewards)
             
+        # NOTE: Added by Reasoning360: Compute Exact Match Accuracy and save eval results
+        try:
+            import sys
+            import os
+            import pandas as pd
+            import collections
+            
+            sys.path.append("/root/autodl-tmp/Reasoning360/examples/noise_math")
+            from eval_model import extract_answer, is_correct
+            from tqdm import tqdm
+            
+            eval_records = []
+            dataset_corrects = collections.defaultdict(list)
+            
+            out_dir = f"/root/autodl-tmp/Reasoning360/examples/noise_math/Output/eval_results/global_step_{self.global_steps}"
+            os.makedirs(out_dir, exist_ok=True)
+            
+            print(f"\n[Validation] Extracting answers for {len(sample_outputs)} samples...", flush=True)
+            for i in tqdm(range(len(sample_outputs)), desc="Extracting Answers", file=sys.stdout, dynamic_ncols=True):
+                ds_name = datasets[i] if i < len(datasets) else "unknown"
+                pred_text = sample_outputs[i]
+                gold_ans = sample_golds[i]
+                ds_source = data_sources[i] if i < len(data_sources) else "unknown"
+                
+                pred_ans = extract_answer(pred_text)
+                correct = is_correct(pred_ans, gold_ans)
+                
+                dataset_corrects[(ds_source, ds_name)].append(correct)
+                eval_records.append({
+                    "dataset": ds_name,
+                    "question": sample_inputs[i],
+                    "gold": gold_ans,
+                    "pred": pred_ans,
+                    "generated": pred_text,
+                    "correct": correct,
+                    "reward_score": sample_scores[i] if i < len(sample_scores) else 0.0
+                })
+                
+            for (ds_source, ds_name), corrects in dataset_corrects.items():
+                acc = sum(corrects) / len(corrects) if len(corrects) > 0 else 0.0
+                metric_dict[f"val/accuracy/{ds_source}/{ds_name}"] = acc
+                
+            # NOTE: Updated to save as JSONL and generate a summary JSON file
+            import json
+            
+            # Save detail files as JSONL
+            eval_df = pd.DataFrame(eval_records)
+            for ds, group in eval_df.groupby("dataset"):
+                jsonl_path = f"{out_dir}/{ds}.jsonl"
+                group.to_json(jsonl_path, orient="records", lines=True, force_ascii=False)
+                
+            # Create summary accuracy file
+            summary_path = f"{out_dir}/accuracy_summary.json"
+            summary_data = {
+                "global_step": self.global_steps,
+                "metrics": {}
+            }
+            for (ds_source, ds_name), corrects in dataset_corrects.items():
+                acc = sum(corrects) / len(corrects) if len(corrects) > 0 else 0.0
+                summary_data["metrics"][f"{ds_source}/{ds_name}"] = {
+                    "accuracy": acc,
+                    "total": len(corrects),
+                    "correct": sum(corrects)
+                }
+            with open(summary_path, 'w', encoding='utf-8') as f:
+                json.dump(summary_data, f, indent=4, ensure_ascii=False)
+                
+        except Exception as e:
+            print(f"Error computing exact match accuracy: {e}")
+
         return metric_dict
 
     def init_workers(self):

@@ -70,6 +70,11 @@ def extract_answer(text):
     if all_nums:
         return all_nums[-1].replace('$', '').replace(',', '').strip('.')
 
+    # 9. Ultimate Fallback: Extract the last standalone number found anywhere in the text
+    ultimate_nums = re.findall(r'(-?\d+(?:\.\d+)?)', text_str)
+    if ultimate_nums:
+        return ultimate_nums[-1].strip('.')
+
     return None
 
 def is_correct(pred, gold):

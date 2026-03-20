@@ -14,6 +14,10 @@ if [ ! -f "/root/autodl-tmp/Reasoning360/examples/noise_math/dataset/Processed/t
     bash /root/autodl-tmp/Reasoning360/examples/noise_math/scripts/prepare_data.sh
 fi
 
+# Prepare test data for accuracy evaluation
+echo "Preparing test data for evaluation..."
+python3 /root/autodl-tmp/Reasoning360/examples/noise_math/scripts/prepare_test_eval_data.py
+
 # Default model path is the output of SFT training. 
 # If SFT hasn't been run, fallback to the original base model.
 BASE_MODEL_PATH="/root/autodl-tmp/Reasoning360/examples/noise_math/Output/sft_model"
@@ -32,7 +36,7 @@ echo "Starting Remote PPO Training on 4x A100..."
 python3 -m verl.trainer.main_ppo \
     algorithm.adv_estimator=gae \
     data.train_files="/root/autodl-tmp/Reasoning360/examples/noise_math/dataset/Processed/train.parquet" \
-    data.val_files="/root/autodl-tmp/Reasoning360/examples/noise_math/dataset/Processed/test.parquet" \
+    data.val_files="/root/autodl-tmp/Reasoning360/examples/noise_math/dataset/Processed/test_eval.parquet" \
     data.train_batch_size=256 \
     data.val_batch_size=128 \
     data.max_prompt_length=512 \
@@ -71,7 +75,7 @@ python3 -m verl.trainer.main_ppo \
     custom_reward_function.name="compute_reward" \
     algorithm.use_kl_in_reward=False \
     trainer.critic_warmup=0 \
-    trainer.logger='["console"]' \
+    trainer.logger='["console", "wandb"]' \
     trainer.project_name='noise_math_remote' \
     trainer.experiment_name='qwen2.5-0.5b-ppo-remote' \
     trainer.default_local_dir="/root/autodl-tmp/Reasoning360/examples/noise_math/Output/checkpoints" \

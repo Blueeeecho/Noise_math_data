@@ -10,6 +10,10 @@ if [ ! -f "/root/autodl-tmp/Reasoning360/examples/noise_math/dataset/Processed/t
     bash /root/autodl-tmp/Reasoning360/examples/noise_math/scripts/prepare_data.sh
 fi
 
+# Prepare test data for accuracy evaluation
+echo "Preparing test data for evaluation..."
+python3 /root/autodl-tmp/Reasoning360/examples/noise_math/scripts/prepare_test_eval_data.py
+
 echo "Starting Local GRPO Training on Single GPU (4090D)..."
 
 # Using standard verl PPO trainer logic with CLI overrides for GRPO
@@ -29,7 +33,7 @@ fi
 python3 -m verl.trainer.main_ppo \
     algorithm.adv_estimator=grpo \
     data.train_files="/root/autodl-tmp/Reasoning360/examples/noise_math/dataset/Processed/train.parquet" \
-    data.val_files="/root/autodl-tmp/Reasoning360/examples/noise_math/dataset/Processed/test.parquet" \
+    data.val_files="/root/autodl-tmp/Reasoning360/examples/noise_math/dataset/Processed/test_eval.parquet" \
     data.train_batch_size=16 \
     data.max_prompt_length=512 \
     data.max_response_length=512 \

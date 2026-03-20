@@ -3,8 +3,8 @@ import json
 import pandas as pd
 
 def main():
-    test_data_dir = "/root/autodl-tmp/Reasoning360/examples/noise_math/dataset/test_data"
-    output_path = "/root/autodl-tmp/Reasoning360/examples/noise_math/dataset/Processed/test_eval.parquet"
+    test_data_dir = "/export/home/asifali/Noise_math_data/examples/noise_math/dataset/test_data"
+    output_path = "/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed/test_eval.parquet"
     
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     

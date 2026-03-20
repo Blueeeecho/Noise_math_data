@@ -135,6 +135,10 @@ if [ ! -f "/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Proc
     bash /export/home/asifali/Noise_math_data/scripts_qwen_1_5B/train/prepare_data.sh
 fi
 
+# Prepare test data for accuracy evaluation
+echo "Preparing test data for evaluation..."
+python3 /export/home/asifali/Noise_math_data/examples/noise_math/scripts/prepare_test_eval_data.py
+
 echo "Starting GRPO Training on 4 x A100 GPUs"
 
 # Using standard verl PPO trainer logic with CLI overrides for GRPO
@@ -212,7 +216,7 @@ echo "Starting training..."
 python3 -m verl.trainer.main_ppo \
     algorithm.adv_estimator=${adv_estimator} \
     data.train_files="/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed/train.parquet" \
-    data.val_files="/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed/test.parquet" \
+    data.val_files="/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed/test_eval.parquet" \
     data.train_batch_size=${train_prompt_bsz} \
     data.max_prompt_length=${max_prompt_length} \
     data.max_response_length=${max_response_length} \
@@ -250,7 +254,7 @@ python3 -m verl.trainer.main_ppo \
     custom_reward_function.name="compute_reward" \
     algorithm.use_kl_in_reward=False \
     trainer.critic_warmup=0 \
-    trainer.logger='["console"]' \
+    trainer.logger='["console", "wandb"]' \
     trainer.project_name='noise_math_local_grpo' \
     trainer.experiment_name='qwen2.5-1.5b-grpo-test' \
     trainer.default_local_dir="/export/home/asifali/Noise_math_data/examples/noise_math/Output/checkpoints" \

@@ -1043,6 +1043,9 @@ class RayPPOTrainer:
                 worker_group=self.actor_rollout_wg,
             )
 
+        # To track the best accuracy across validations
+        self.best_val_accuracy = -1.0
+
     def _save_checkpoint(self):
         from verl.utils.fs import local_mkdir_safe
 
@@ -1100,6 +1103,44 @@ class RayPPOTrainer:
         )
         with open(local_latest_checkpointed_iteration, "w") as f:
             f.write(str(self.global_steps))
+
+    def _save_best_checkpoint(self):
+        from verl.utils.fs import local_mkdir_safe
+
+        local_global_step_folder = os.path.join(
+            self.config.trainer.default_local_dir, "best_checkpoint"
+        )
+
+        print(f"[Validation] Saving best checkpoint to: {local_global_step_folder}")
+        actor_local_path = os.path.join(local_global_step_folder, "actor")
+        actor_remote_path = (
+            None
+            if self.config.trainer.default_hdfs_dir is None
+            else os.path.join(self.config.trainer.default_hdfs_dir, "best_checkpoint", "actor")
+        )
+
+        # We keep only 1 best checkpoint
+        self.actor_rollout_wg.save_checkpoint(
+            actor_local_path, actor_remote_path, self.global_steps, max_ckpt_to_keep=1
+        )
+
+        if self.use_critic:
+            critic_local_path = os.path.join(local_global_step_folder, "critic")
+            critic_remote_path = (
+                None
+                if self.config.trainer.default_hdfs_dir is None
+                else os.path.join(self.config.trainer.default_hdfs_dir, "best_checkpoint", "critic")
+            )
+            self.critic_wg.save_checkpoint(
+                critic_local_path, critic_remote_path, self.global_steps, max_ckpt_to_keep=1
+            )
+            
+        # Write metadata about the best step
+        local_mkdir_safe(local_global_step_folder)
+        best_info_path = os.path.join(local_global_step_folder, "best_info.txt")
+        with open(best_info_path, "w") as f:
+            f.write(f"best_global_steps: {self.global_steps}\n")
+            f.write(f"best_val_accuracy: {self.best_val_accuracy}\n")
 
     def _load_checkpoint(self):
         if self.config.trainer.resume_mode == "disable":
@@ -1468,6 +1509,18 @@ class RayPPOTrainer:
                             if is_last_step:
                                 last_val_metrics = val_metrics
                         metrics.update(val_metrics)
+                        
+                        # NOTE: Added by Reasoning360: Check for best accuracy and save best checkpoint
+                        acc_keys = [k for k in val_metrics.keys() if k.startswith("val/accuracy/")]
+                        if acc_keys:
+                            avg_acc = sum(val_metrics[k] for k in acc_keys) / len(acc_keys)
+                            print(f"\n[Validation] Current average accuracy across {len(acc_keys)} datasets: {avg_acc:.4f} (Best: {self.best_val_accuracy:.4f})", flush=True)
+                            
+                            if avg_acc > self.best_val_accuracy:
+                                print(f"[Validation] New best accuracy found! {self.best_val_accuracy:.4f} -> {avg_acc:.4f}", flush=True)
+                                self.best_val_accuracy = avg_acc
+                                with marked_timer("save_best_checkpoint", timing_raw, color="green"):
+                                    self._save_best_checkpoint()
 
                     # Check if the ESI (Elastic Server Instance)/training plan is close to expiration.
                     esi_close_to_expiration = should_save_ckpt_esi(

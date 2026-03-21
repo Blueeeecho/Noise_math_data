@@ -873,15 +873,21 @@ class RayPPOTrainer:
             import os
             import pandas as pd
             import collections
+            import json
             
-            sys.path.append("/root/autodl-tmp/Reasoning360/examples/noise_math")
+            # Use dynamic current working directory to support both local and remote execution paths
+            current_dir = os.getcwd()
+            math_dir = os.path.join(current_dir, "examples", "noise_math")
+            if math_dir not in sys.path:
+                sys.path.append(math_dir)
+            
             from eval_model import extract_answer, is_correct
             from tqdm import tqdm
             
             eval_records = []
             dataset_corrects = collections.defaultdict(list)
             
-            out_dir = f"/root/autodl-tmp/Reasoning360/examples/noise_math/Output/eval_results/global_step_{self.global_steps}"
+            out_dir = os.path.join(math_dir, "Output", "eval_results", f"global_step_{self.global_steps}")
             os.makedirs(out_dir, exist_ok=True)
             
             print(f"\n[Validation] Extracting answers for {len(sample_outputs)} samples...", flush=True)
@@ -1278,6 +1284,13 @@ class RayPPOTrainer:
         self.global_steps += 1
         last_val_metrics = None
         self.max_steps_duration = 0
+        
+        # NOTE: Added by Reasoning360: Evaluate and save checkpoints at the end of every epoch
+        steps_per_epoch = len(self.train_dataloader)
+        if steps_per_epoch > 0:
+            print(f"Overriding test_freq and save_freq to {steps_per_epoch} (1 epoch) for periodic validation.")
+            self.config.trainer.test_freq = steps_per_epoch
+            self.config.trainer.save_freq = steps_per_epoch
 
         for epoch in range(self.config.trainer.total_epochs):
             start = time.perf_counter()

@@ -940,6 +940,37 @@ class RayPPOTrainer:
             with open(summary_path, 'w', encoding='utf-8') as f:
                 json.dump(summary_data, f, indent=4, ensure_ascii=False)
                 
+            # NOTE: Added by Reasoning360: Create a global CSV summary file
+            global_summary_path = os.path.join(math_dir, "Output", "eval_results", "global_training_summary.csv")
+            
+            # Prepare row data dictionary
+            row_data = {"global_step": self.global_steps}
+            
+            # Extract dataset names and format columns
+            for (ds_source, ds_name), corrects in dataset_corrects.items():
+                acc = sum(corrects) / len(corrects) if len(corrects) > 0 else 0.0
+                reward = data_source_dataset_reward.get((ds_source, ds_name), [0.0])
+                avg_reward = np.mean(reward) if len(reward) > 0 else 0.0
+                
+                col_prefix = f"{ds_name}"
+                row_data[f"{col_prefix}_acc"] = f"{acc:.4f}"
+                row_data[f"{col_prefix}_reward"] = f"{avg_reward:.4f}"
+                
+            # Check if file exists to write header
+            file_exists = os.path.isfile(global_summary_path)
+            
+            # We want to ensure stable column order based on sorted keys
+            columns = ["global_step"] + sorted([k for k in row_data.keys() if k != "global_step"])
+            
+            with open(global_summary_path, 'a', encoding='utf-8') as f:
+                if not file_exists:
+                    # Write header
+                    f.write(",".join(columns) + "\n")
+                
+                # Write row data
+                row_values = [str(row_data.get(col, "")) for col in columns]
+                f.write(",".join(row_values) + "\n")
+                
         except Exception as e:
             print(f"Error computing exact match accuracy: {e}")
 

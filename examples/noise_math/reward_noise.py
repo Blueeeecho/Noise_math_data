@@ -49,7 +49,7 @@ def compute_reward(data_source, solution_str, ground_truth, extra_info=None,
     response_str = solution_str
     
     # 1. Format Reward
-    r_format = 0.0
+    r_format = -1.0
     if enable_format and check_format(response_str):
         r_format = 1.0
         

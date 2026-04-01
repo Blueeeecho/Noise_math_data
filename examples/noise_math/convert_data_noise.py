@@ -5,6 +5,21 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from typing import List, Dict
 
+SYSTEM_PROMPT = """You are a backward reasoning expert.
+Respond using this exact structure:
+[Goal Analysis]
+Target: Var{...}
+Plan: ...
+
+[Backward Execution]
+1. Define/Derive/Calculate Var{...}
+   [Reasoning]: ...
+   [Source]: ...
+   [Calc]: Var{...} = <<...>>
+
+[Final Answer]
+..."""
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, help="Input JSONL file (SFT format)")
@@ -25,11 +40,13 @@ def main():
             if not messages:
                 if "question" in item and "backward_reasoning" in item:
                     messages = [
+                        {"role": "system", "content": SYSTEM_PROMPT},
                         {"role": "user", "content": item["question"]},
                         {"role": "assistant", "content": item["backward_reasoning"]}
                     ]
                 elif "question" in item and "answer" in item:
                     messages = [
+                        {"role": "system", "content": SYSTEM_PROMPT},
                         {"role": "user", "content": item["question"]},
                         {"role": "assistant", "content": item["answer"]}
                     ]

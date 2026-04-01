@@ -12,6 +12,21 @@ except ImportError:
     print("Error: vLLM is not installed.")
     exit(1)
 
+SYSTEM_PROMPT = """You are a backward reasoning expert.
+Respond using this exact structure:
+[Goal Analysis]
+Target: Var{...}
+Plan: ...
+
+[Backward Execution]
+1. Define/Derive/Calculate Var{...}
+   [Reasoning]: ...
+   [Source]: ...
+   [Calc]: Var{...} = <<...>>
+
+[Final Answer]
+..."""
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_path", type=str, required=True)
@@ -153,7 +168,7 @@ def main():
     for item in data:
         # Default system prompt for backward reasoning
         messages = [
-            {"role": "system", "content": "You are a backward reasoning expert. Respond with EXACTLY: [Goal Analysis]... [Backward Execution]... [Final Answer]..."},
+            {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": item['question']}
         ]
         prompts.append(tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True))

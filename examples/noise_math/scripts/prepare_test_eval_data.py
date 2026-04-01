@@ -2,6 +2,21 @@ import os
 import json
 import pandas as pd
 
+SYSTEM_PROMPT = """You are a backward reasoning expert.
+Respond using this exact structure:
+[Goal Analysis]
+Target: Var{...}
+Plan: ...
+
+[Backward Execution]
+1. Define/Derive/Calculate Var{...}
+   [Reasoning]: ...
+   [Source]: ...
+   [Calc]: Var{...} = <<...>>
+
+[Final Answer]
+..."""
+
 def main():
     test_data_dir = "/export/home/asifali/Noise_math_data/examples/noise_math/dataset/test_data"
     output_path = "/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed/test_eval.parquet"
@@ -41,7 +56,7 @@ def main():
                         
                     # Format prompt using the system prompt required for evaluation
                     prompt = [
-                        {"role": "system", "content": "You are a backward reasoning expert. Respond with EXACTLY: [Goal Analysis]... [Backward Execution]... [Final Answer]..."},
+                        {"role": "system", "content": SYSTEM_PROMPT},
                         {"role": "user", "content": q}
                     ]
                     

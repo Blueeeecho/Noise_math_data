@@ -191,6 +191,22 @@ max_num_gen_batches=10
 train_prompt_bsz=600  # on-policy model update batchsize: train_prompt_bsz * rollout.n
 gen_prompt_bsz=$((train_prompt_bsz * 1))
 
+w_format=0.5
+w_process=1.0
+w_outcome=2.5
+reward_mode="step_rule"
+global_fail_reward=-0.5
+step_acc_weight=0.7
+step_good_weight=0.4
+step_bad_weight=0.3
+step_fmt_weight=0.2
+step_norm_min=3
+require_reasoning=False
+require_source=False
+bad_on_unused_var=True
+bad_on_duplicate_var=True
+bad_on_missing_dependency=True
+
 
 # Algorithm
 top_p=0.9
@@ -252,6 +268,21 @@ python3 -m verl.trainer.main_ppo \
     reward_model.enable=False \
     custom_reward_function.path="/export/home/asifali/Noise_math_data/examples/noise_math/reward_noise.py" \
     custom_reward_function.name="compute_reward" \
+    +custom_reward_function.reward_kwargs.w_format=${w_format} \
+    +custom_reward_function.reward_kwargs.w_process=${w_process} \
+    +custom_reward_function.reward_kwargs.w_outcome=${w_outcome} \
+    +custom_reward_function.reward_kwargs.reward_mode=${reward_mode} \
+    +custom_reward_function.reward_kwargs.global_fail_reward=${global_fail_reward} \
+    +custom_reward_function.reward_kwargs.step_acc_weight=${step_acc_weight} \
+    +custom_reward_function.reward_kwargs.step_good_weight=${step_good_weight} \
+    +custom_reward_function.reward_kwargs.step_bad_weight=${step_bad_weight} \
+    +custom_reward_function.reward_kwargs.step_fmt_weight=${step_fmt_weight} \
+    +custom_reward_function.reward_kwargs.step_norm_min=${step_norm_min} \
+    +custom_reward_function.reward_kwargs.require_reasoning=${require_reasoning} \
+    +custom_reward_function.reward_kwargs.require_source=${require_source} \
+    +custom_reward_function.reward_kwargs.bad_on_unused_var=${bad_on_unused_var} \
+    +custom_reward_function.reward_kwargs.bad_on_duplicate_var=${bad_on_duplicate_var} \
+    +custom_reward_function.reward_kwargs.bad_on_missing_dependency=${bad_on_missing_dependency} \
     algorithm.use_kl_in_reward=False \
     trainer.critic_warmup=0 \
     trainer.logger='["console", "wandb"]' \

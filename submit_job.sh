@@ -9,7 +9,7 @@ TEST_TEMP_LIST=(0.0)
 SYSTEM_NAME_LIST=("Noise_math_data")
 
 SLURM_SCRIPT_A100="./scripts_qwen_1_5B/train/run_${ACRONYM}.sh"
-SLURM_LOG_DIR="/export/home/asifali/Noise_math_data/examples/noise_math/Output/${ACRONYM}/slurm"
+SLURM_LOG_DIR="/export/home/asifali/Noise_math_data/all_logs"
 mkdir -p "$SLURM_LOG_DIR"
 
 for i in "${!TRAIN_TEMP_LIST[@]}"; do

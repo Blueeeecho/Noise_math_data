@@ -3,6 +3,8 @@ import json
 import argparse
 import pandas as pd
 
+PROMPT_PLACEHOLDER = "__QUESTION__"
+
 SYSTEM_PROMPT_CASE_1 = """You are a backward reasoning expert.
 Respond using this exact structure:
 [Goal Analysis]
@@ -84,7 +86,7 @@ Plan: I need to calculate how many pieces of fruit are in each bag, then multipl
 Now solve the following problem in the same format.
 
 Question:
-{question}
+__QUESTION__
 """
 
 
@@ -97,10 +99,11 @@ def parse_args():
 
 
 def build_prompt(question, prompt_version):
+    question = (question or "").strip()
     if prompt_version == "case_2":
         return [
             {"role": "system", "content": SYSTEM_PROMPT_CASE_2},
-            {"role": "user", "content": ONE_SHOT_PROMPT_CASE_2.format(question=question or "")},
+            {"role": "user", "content": ONE_SHOT_PROMPT_CASE_2.replace(PROMPT_PLACEHOLDER, question)},
         ]
     return [
         {"role": "system", "content": SYSTEM_PROMPT_CASE_1},
@@ -115,10 +118,12 @@ def main():
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
     all_data = []
+    skipped_missing_question = 0
+    skipped_missing_answer = 0
+    skipped_parse_error = 0
     
     if not os.path.exists(test_data_dir):
-        print(f"Error: Directory {test_data_dir} does not exist.")
-        return
+        raise FileNotFoundError(f"Test data directory does not exist: {test_data_dir}")
         
     for filename in os.listdir(test_data_dir):
         if not filename.endswith(".jsonl"):
@@ -142,7 +147,12 @@ def main():
                     if a and isinstance(a, str) and '####' in a:
                         a = a.split('####')[-1].strip()
                         
+                    if not q or not str(q).strip():
+                        skipped_missing_question += 1
+                        continue
+
                     if not a or str(a).strip().lower() == "none":
+                        skipped_missing_answer += 1
                         continue
                         
                     # Format prompt using the system prompt required for evaluation
@@ -167,16 +177,26 @@ def main():
                     }
                     all_data.append(entry)
                 except Exception as e:
+                    skipped_parse_error += 1
                     print(f"Skipping line in {filename} due to error: {e}")
                     continue
 
     if not all_data:
-        print("No valid test data found.")
-        return
+        raise RuntimeError(
+            "No valid test data found. "
+            f"missing_question={skipped_missing_question}, "
+            f"missing_answer={skipped_missing_answer}, "
+            f"parse_error={skipped_parse_error}"
+        )
         
     df = pd.DataFrame(all_data)
     df.to_parquet(output_path)
-    print(f"Successfully converted {len(df)} test samples from {test_data_dir} into {output_path}")
+    print(
+        f"Successfully converted {len(df)} test samples from {test_data_dir} into {output_path}. "
+        f"Skipped missing_question={skipped_missing_question}, "
+        f"missing_answer={skipped_missing_answer}, "
+        f"parse_error={skipped_parse_error}"
+    )
 
 if __name__ == "__main__":
     main()

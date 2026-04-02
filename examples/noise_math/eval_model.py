@@ -5,6 +5,8 @@ import re
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
+PROMPT_PLACEHOLDER = "__QUESTION__"
+
 try:
     from vllm import LLM, SamplingParams
     from vllm.lora.request import LoRARequest
@@ -93,7 +95,7 @@ Plan: I need to calculate how many pieces of fruit are in each bag, then multipl
 Now solve the following problem in the same format.
 
 Question:
-{question}
+__QUESTION__
 """
 
 def parse_args():
@@ -110,10 +112,11 @@ def parse_args():
 
 
 def build_messages(question, prompt_version):
+    question = (question or "").strip()
     if prompt_version == "case_2":
         return [
             {"role": "system", "content": SYSTEM_PROMPT_CASE_2},
-            {"role": "user", "content": ONE_SHOT_PROMPT_CASE_2.format(question=question or "")},
+            {"role": "user", "content": ONE_SHOT_PROMPT_CASE_2.replace(PROMPT_PLACEHOLDER, question)},
         ]
     return [
         {"role": "system", "content": SYSTEM_PROMPT_CASE_1},

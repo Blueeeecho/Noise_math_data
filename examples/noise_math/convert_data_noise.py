@@ -2,6 +2,8 @@ import argparse
 import json
 import pandas as pd
 
+PROMPT_PLACEHOLDER = "__QUESTION__"
+
 SYSTEM_PROMPT_CASE_1 = """You are a backward reasoning expert.
 Respond using this exact structure:
 [Goal Analysis]
@@ -83,16 +85,16 @@ Plan: I need to calculate how many pieces of fruit are in each bag, then multipl
 Now solve the following problem in the same format.
 
 Question:
-{question}
+__QUESTION__
 """
 
 
 def get_prompt_messages(question, prompt_version):
-    question = question or ""
+    question = (question or "").strip()
     if prompt_version == "case_2":
         return [
             {"role": "system", "content": SYSTEM_PROMPT_CASE_2},
-            {"role": "user", "content": ONE_SHOT_PROMPT_CASE_2.format(question=question)},
+            {"role": "user", "content": ONE_SHOT_PROMPT_CASE_2.replace(PROMPT_PLACEHOLDER, question)},
         ]
     return [
         {"role": "system", "content": SYSTEM_PROMPT_CASE_1},
@@ -147,6 +149,11 @@ def main():
                 }
             }
             data.append(entry)
+
+    if not data:
+        raise RuntimeError(
+            f"No valid samples were converted from {args.input} for prompt_version={args.prompt_version}."
+        )
 
     df = pd.DataFrame(data)
     

@@ -140,12 +140,20 @@ if [ ! -f "${CASE_DATA_DIR}/train.parquet" ]; then
     echo "Data not found. Running prepare_data.sh..."
     bash /export/home/asifali/Noise_math_data/scripts_qwen_1_5B/train/prepare_data.sh "${CASE_DATA_DIR}" "${PROMPT_VERSION}"
 fi
+if [ ! -s "${CASE_DATA_DIR}/train.parquet" ]; then
+    echo "Error: Failed to generate ${CASE_DATA_DIR}/train.parquet"
+    exit 1
+fi
 
 # Prepare test data for accuracy evaluation
 echo "Preparing test data for evaluation..."
 python3 /export/home/asifali/Noise_math_data/examples/noise_math/scripts/prepare_test_eval_data.py \
     --output_path "${CASE_DATA_DIR}/test_eval.parquet" \
     --prompt_version "${PROMPT_VERSION}"
+if [ ! -s "${CASE_DATA_DIR}/test_eval.parquet" ]; then
+    echo "Error: Failed to generate ${CASE_DATA_DIR}/test_eval.parquet"
+    exit 1
+fi
 
 echo "Starting GRPO Training on 4 x A100 GPUs"
 

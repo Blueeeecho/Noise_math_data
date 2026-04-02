@@ -2,7 +2,8 @@
 set -e
 
 # Create data directory
-DATA_DIR="/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed"
+DATA_DIR="${1:-/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed}"
+PROMPT_VERSION="${2:-case_1}"
 mkdir -p "$DATA_DIR"
 
 echo "Preparing data for Noise Math training using internal converter..."
@@ -21,11 +22,13 @@ fi
 echo "Converting $INPUT_FILE to $DATA_DIR/train.parquet"
 python /export/home/asifali/Noise_math_data/examples/noise_math/convert_data_noise.py \
     --input "$INPUT_FILE" \
-    --output "$DATA_DIR/train.parquet"
+    --output "$DATA_DIR/train.parquet" \
+    --prompt_version "$PROMPT_VERSION"
 
 echo "Converting $INPUT_FILE to $DATA_DIR/test.parquet"
 python /export/home/asifali/Noise_math_data/examples/noise_math/convert_data_noise.py \
     --input "$INPUT_FILE" \
-    --output "$DATA_DIR/test.parquet"
+    --output "$DATA_DIR/test.parquet" \
+    --prompt_version "$PROMPT_VERSION"
 
-echo "Data preparation complete. Parquet files saved to $DATA_DIR"
+echo "Data preparation complete. Parquet files saved to $DATA_DIR using prompt version $PROMPT_VERSION"

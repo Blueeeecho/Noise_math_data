@@ -887,7 +887,9 @@ class RayPPOTrainer:
             eval_records = []
             dataset_corrects = collections.defaultdict(list)
             
-            out_dir = os.path.join(math_dir, "Output", "eval_results", f"global_step_{self.global_steps}")
+            job_root = os.path.dirname(self.config.trainer.default_local_dir)
+            eval_root = os.path.join(job_root, "eval_results")
+            out_dir = os.path.join(eval_root, f"global_step_{self.global_steps}")
             os.makedirs(out_dir, exist_ok=True)
             
             print(f"\n[Validation] Extracting answers for {len(sample_outputs)} samples...", flush=True)
@@ -941,7 +943,7 @@ class RayPPOTrainer:
                 json.dump(summary_data, f, indent=4, ensure_ascii=False)
                 
             # NOTE: Added by Reasoning360: Create a global CSV summary file
-            global_summary_path = os.path.join(math_dir, "Output", "eval_results", "global_training_summary.csv")
+            global_summary_path = os.path.join(eval_root, "global_training_summary.csv")
             
             # Prepare row data dictionary
             row_data = {"global_step": self.global_steps}

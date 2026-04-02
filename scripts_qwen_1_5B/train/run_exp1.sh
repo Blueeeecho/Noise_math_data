@@ -24,6 +24,11 @@ export USE_Thinking=1
 #export TRANSFORMERS_CACHE="/export/home/asifali/HF_cache"
 export HF_HOME="/export/home/asifali/HF_cache"
 export HF_DATASETS_CACHE="/export/home/asifali/HF_cache"
+CASE_NAME="${CASE_NAME:-case_1}"
+PROMPT_VERSION="${PROMPT_VERSION:-case_1}"
+OUTPUT_ROOT="/export/home/asifali/Noise_math_data/examples/noise_math/Output/${CASE_NAME}"
+JOB_ROOT="${OUTPUT_ROOT}/job_${SLURM_JOB_ID}"
+CASE_DATA_DIR="/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed/${CASE_NAME}"
 
 #export RAY_TMPDIR="/export/home/asifali/HF_cache/RAY_TMP"
 #mkdir -p RAY_TMPDIR
@@ -125,19 +130,22 @@ export SWITCH_EPOCH=${SWITCH_EPOCH}
 
 # export CUDA_LAUNCH_BLOCKING=1 # Uncomment for easier debugging of CUDA errors
 
+mkdir -p "${JOB_ROOT}" "${CASE_DATA_DIR}"
 
 # ======================================================================
 
 
 # Ensure data exists
-if [ ! -f "/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed/train.parquet" ]; then
+if [ ! -f "${CASE_DATA_DIR}/train.parquet" ]; then
     echo "Data not found. Running prepare_data.sh..."
-    bash /export/home/asifali/Noise_math_data/scripts_qwen_1_5B/train/prepare_data.sh
+    bash /export/home/asifali/Noise_math_data/scripts_qwen_1_5B/train/prepare_data.sh "${CASE_DATA_DIR}" "${PROMPT_VERSION}"
 fi
 
 # Prepare test data for accuracy evaluation
 echo "Preparing test data for evaluation..."
-python3 /export/home/asifali/Noise_math_data/examples/noise_math/scripts/prepare_test_eval_data.py
+python3 /export/home/asifali/Noise_math_data/examples/noise_math/scripts/prepare_test_eval_data.py \
+    --output_path "${CASE_DATA_DIR}/test_eval.parquet" \
+    --prompt_version "${PROMPT_VERSION}"
 
 echo "Starting GRPO Training on 4 x A100 GPUs"
 
@@ -231,8 +239,8 @@ offload=True
 echo "Starting training..."
 python3 -m verl.trainer.main_ppo \
     algorithm.adv_estimator=${adv_estimator} \
-    data.train_files="/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed/train.parquet" \
-    data.val_files="/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed/test_eval.parquet" \
+    data.train_files="${CASE_DATA_DIR}/train.parquet" \
+    data.val_files="${CASE_DATA_DIR}/test_eval.parquet" \
     data.train_batch_size=${train_prompt_bsz} \
     data.max_prompt_length=${max_prompt_length} \
     data.max_response_length=${max_response_length} \
@@ -288,7 +296,7 @@ python3 -m verl.trainer.main_ppo \
     trainer.logger='["console", "wandb"]' \
     trainer.project_name='noise_math_local_grpo' \
     trainer.experiment_name='qwen2.5-1.5b-grpo-test' \
-    trainer.default_local_dir="/export/home/asifali/Noise_math_data/examples/noise_math/Output/checkpoints" \
+    trainer.default_local_dir="${JOB_ROOT}/checkpoints" \
     trainer.n_gpus_per_node=${NUM_GPUS} \
     trainer.nnodes=1 \
     trainer.save_freq=1000 \

@@ -51,6 +51,15 @@ fi
 #export RAY_TMPDIR="/export/home/asifali/HF_cache/RAY_TMP"
 #mkdir -p RAY_TMPDIR
 
+
+# Clean old temp files (avoid disk full issue)
+if [ -d "/var/tmp/asifali" ]; then
+    echo "Cleaning old temp files in /var/tmp/asifali..."
+    rm -rf /var/tmp/asifali/*
+fi
+
+
+
 # ===============================
 # Force ALL temp/cache off /tmp
 # ===============================

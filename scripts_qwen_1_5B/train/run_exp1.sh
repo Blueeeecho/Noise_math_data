@@ -29,17 +29,16 @@ PROMPT_VERSION="${PROMPT_VERSION:-case_1}"
 BASE_MODEL_PATH_OVERRIDE="${BASE_MODEL_PATH_OVERRIDE:-}"
 MODEL_NAME="${MODEL_NAME:-}"
 TOTAL_EPOCHS="${TOTAL_EPOCHS:-500}"
+BASE_MODEL_PATH_CANDIDATE="/export/home/asifali/Noise_math_data/examples/noise_math/Output/sft_model"
+if [ -n "${BASE_MODEL_PATH_OVERRIDE}" ]; then
+    BASE_MODEL_PATH_CANDIDATE="${BASE_MODEL_PATH_OVERRIDE}"
+elif [ ! -d "${BASE_MODEL_PATH_CANDIDATE}" ]; then
+    BASE_MODEL_PATH_CANDIDATE="/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct"
+fi
 if [ -z "${MODEL_NAME}" ]; then
-    if [ -n "${BASE_MODEL_PATH_OVERRIDE}" ]; then
-        MODEL_NAME="$(basename "${BASE_MODEL_PATH_OVERRIDE}")"
-    else
-        MODEL_NAME="default_model"
-    fi
+    MODEL_NAME="$(basename "${BASE_MODEL_PATH_CANDIDATE}")"
 fi
-OUTPUT_ROOT="/export/home/asifali/Noise_math_data/examples/noise_math/Output/${CASE_NAME}"
-if [ "${CASE_NAME}" = "case_3" ]; then
-    OUTPUT_ROOT="${OUTPUT_ROOT}/${MODEL_NAME}"
-fi
+OUTPUT_ROOT="/export/home/asifali/Noise_math_data/examples/noise_math/Output/${CASE_NAME}/${MODEL_NAME}"
 JOB_ROOT="${OUTPUT_ROOT}/job_${SLURM_JOB_ID}"
 CASE_DATA_DIR="/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed/${CASE_NAME}"
 REWARD_FILE="/export/home/asifali/Noise_math_data/examples/noise_math/reward_noise.py"
@@ -184,12 +183,9 @@ echo "Starting GRPO Training on 4 x A100 GPUs"
 
 # Default model path is the output of SFT training. 
 # If SFT hasn't been run, fallback to the original base model.
-BASE_MODEL_PATH="/export/home/asifali/Noise_math_data/examples/noise_math/Output/sft_model"
-if [ -n "${BASE_MODEL_PATH_OVERRIDE}" ]; then
-    BASE_MODEL_PATH="${BASE_MODEL_PATH_OVERRIDE}"
-elif [ ! -d "$BASE_MODEL_PATH" ]; then
-    echo "SFT model not found at $BASE_MODEL_PATH. Falling back to base Qwen model."
-    BASE_MODEL_PATH="/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct"
+BASE_MODEL_PATH="${BASE_MODEL_PATH_CANDIDATE}"
+if [ "${BASE_MODEL_PATH}" = "/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct" ] && [ -z "${BASE_MODEL_PATH_OVERRIDE}" ]; then
+    echo "SFT model not found at /export/home/asifali/Noise_math_data/examples/noise_math/Output/sft_model. Falling back to base Qwen model."
 fi
 
 # =================== RL Config ===================

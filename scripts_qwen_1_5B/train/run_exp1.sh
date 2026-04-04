@@ -26,7 +26,20 @@ export HF_HOME="/export/home/asifali/HF_cache"
 export HF_DATASETS_CACHE="/export/home/asifali/HF_cache"
 CASE_NAME="${CASE_NAME:-case_1}"
 PROMPT_VERSION="${PROMPT_VERSION:-case_1}"
+BASE_MODEL_PATH_OVERRIDE="${BASE_MODEL_PATH_OVERRIDE:-}"
+MODEL_NAME="${MODEL_NAME:-}"
+TOTAL_EPOCHS="${TOTAL_EPOCHS:-500}"
+if [ -z "${MODEL_NAME}" ]; then
+    if [ -n "${BASE_MODEL_PATH_OVERRIDE}" ]; then
+        MODEL_NAME="$(basename "${BASE_MODEL_PATH_OVERRIDE}")"
+    else
+        MODEL_NAME="default_model"
+    fi
+fi
 OUTPUT_ROOT="/export/home/asifali/Noise_math_data/examples/noise_math/Output/${CASE_NAME}"
+if [ "${CASE_NAME}" = "case_3" ]; then
+    OUTPUT_ROOT="${OUTPUT_ROOT}/${MODEL_NAME}"
+fi
 JOB_ROOT="${OUTPUT_ROOT}/job_${SLURM_JOB_ID}"
 CASE_DATA_DIR="/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed/${CASE_NAME}"
 REWARD_FILE="/export/home/asifali/Noise_math_data/examples/noise_math/reward_noise.py"
@@ -172,7 +185,9 @@ echo "Starting GRPO Training on 4 x A100 GPUs"
 # Default model path is the output of SFT training. 
 # If SFT hasn't been run, fallback to the original base model.
 BASE_MODEL_PATH="/export/home/asifali/Noise_math_data/examples/noise_math/Output/sft_model"
-if [ ! -d "$BASE_MODEL_PATH" ]; then
+if [ -n "${BASE_MODEL_PATH_OVERRIDE}" ]; then
+    BASE_MODEL_PATH="${BASE_MODEL_PATH_OVERRIDE}"
+elif [ ! -d "$BASE_MODEL_PATH" ]; then
     echo "SFT model not found at $BASE_MODEL_PATH. Falling back to base Qwen model."
     BASE_MODEL_PATH="/export/home/asifali/HF_cache/Qwen2.5-1.5B-Instruct"
 fi
@@ -324,4 +339,4 @@ python3 -m verl.trainer.main_ppo \
     trainer.max_critic_ckpt_to_keep=1 \
     trainer.test_freq=10 \
     trainer.val_before_train=True \
-    trainer.total_epochs=500
+    trainer.total_epochs=${TOTAL_EPOCHS}

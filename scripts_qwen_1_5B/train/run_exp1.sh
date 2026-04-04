@@ -29,6 +29,12 @@ PROMPT_VERSION="${PROMPT_VERSION:-case_1}"
 OUTPUT_ROOT="/export/home/asifali/Noise_math_data/examples/noise_math/Output/${CASE_NAME}"
 JOB_ROOT="${OUTPUT_ROOT}/job_${SLURM_JOB_ID}"
 CASE_DATA_DIR="/export/home/asifali/Noise_math_data/examples/noise_math/dataset/Processed/${CASE_NAME}"
+REWARD_FILE="/export/home/asifali/Noise_math_data/examples/noise_math/reward_noise.py"
+REWARD_FUNC="compute_reward"
+
+if [ "${CASE_NAME}" = "case_3" ]; then
+    REWARD_FILE="/export/home/asifali/Noise_math_data/examples/noise_math/reward_case_3.py"
+fi
 
 #export RAY_TMPDIR="/export/home/asifali/HF_cache/RAY_TMP"
 #mkdir -p RAY_TMPDIR
@@ -222,6 +228,9 @@ require_source=False
 bad_on_unused_var=True
 bad_on_duplicate_var=True
 bad_on_missing_dependency=True
+acc_weight=0.55
+fmt_weight=0.15
+step_weight=0.30
 
 
 # Algorithm
@@ -282,13 +291,16 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=2 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     reward_model.enable=False \
-    custom_reward_function.path="/export/home/asifali/Noise_math_data/examples/noise_math/reward_noise.py" \
-    custom_reward_function.name="compute_reward" \
+    custom_reward_function.path="${REWARD_FILE}" \
+    custom_reward_function.name="${REWARD_FUNC}" \
     +custom_reward_function.reward_kwargs.w_format=${w_format} \
     +custom_reward_function.reward_kwargs.w_process=${w_process} \
     +custom_reward_function.reward_kwargs.w_outcome=${w_outcome} \
     +custom_reward_function.reward_kwargs.reward_mode=${reward_mode} \
     +custom_reward_function.reward_kwargs.global_fail_reward=${global_fail_reward} \
+    +custom_reward_function.reward_kwargs.acc_weight=${acc_weight} \
+    +custom_reward_function.reward_kwargs.fmt_weight=${fmt_weight} \
+    +custom_reward_function.reward_kwargs.step_weight=${step_weight} \
     +custom_reward_function.reward_kwargs.step_acc_weight=${step_acc_weight} \
     +custom_reward_function.reward_kwargs.step_good_weight=${step_good_weight} \
     +custom_reward_function.reward_kwargs.step_bad_weight=${step_bad_weight} \

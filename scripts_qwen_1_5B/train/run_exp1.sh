@@ -114,6 +114,11 @@ gpu_memory_utilization=0.8
 # --- Resuming & Logging ---
 RESUME_CKPT_DIR_NAME=""  # Fill in the W&B experiment name to resume from, otherwise leave empty to start from scratch
 WANDB_PROJECT="EXP1_Noisy_data_A100" # Your wandb project name
+DISABLE_WANDB="${DISABLE_WANDB:-0}"
+TRAINER_LOGGERS='["console", "wandb"]'
+if [ "${DISABLE_WANDB}" = "1" ]; then
+    TRAINER_LOGGERS='["console"]'
+fi
 
 # --- External Services ---
 export WANDB_API_KEY="64305b88cc27033d4132d6ce147ecce132e6955d"
@@ -333,7 +338,7 @@ python3 -m verl.trainer.main_ppo \
     +custom_reward_function.reward_kwargs.bad_on_missing_dependency=${bad_on_missing_dependency} \
     algorithm.use_kl_in_reward=False \
     trainer.critic_warmup=0 \
-    trainer.logger='["console", "wandb"]' \
+    trainer.logger="${TRAINER_LOGGERS}" \
     trainer.project_name='noise_math_local_grpo' \
     trainer.experiment_name='qwen2.5-1.5b-grpo-test' \
     trainer.default_local_dir="${JOB_ROOT}/checkpoints" \

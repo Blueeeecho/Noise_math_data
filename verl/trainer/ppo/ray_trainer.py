@@ -19,14 +19,15 @@ This trainer supports model-agonistic model initialization with huggingface
 """
 
 import json
+import importlib.util
 import os
+import shutil
 import uuid
 import time
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass, field
 from enum import Enum
-from pprint import pprint
 from typing import Optional
 
 import numpy as np
@@ -64,6 +65,34 @@ from verl.utils.torch_functional import masked_mean
 from verl.utils.tracking import ValidationGenerationsLogger
 
 WorkerType = type[Worker]
+
+
+def _as_bool_flag(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+    return bool(value)
+
+
+def _split_csv_values(value):
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple, set)):
+        return [str(item).strip() for item in value if str(item).strip()]
+    return [item.strip() for item in str(value).split(",") if item.strip()]
+
+
+def _load_custom_reward_attr(config, attr_name):
+    file_path = OmegaConf.select(config, "custom_reward_function.path")
+    if not file_path or not os.path.exists(file_path):
+        return None
+    spec = importlib.util.spec_from_file_location("validation_reward_helper_module", file_path)
+    if spec is None or spec.loader is None:
+        return None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return getattr(module, attr_name, None)
 
 
 class Role(Enum):
@@ -870,10 +899,7 @@ class RayPPOTrainer:
         # NOTE: Added by Reasoning360: Compute Exact Match Accuracy and save eval results
         try:
             import sys
-            import os
-            import pandas as pd
             import collections
-            import json
             
             # Use dynamic current working directory to support both local and remote execution paths
             current_dir = os.getcwd()
@@ -885,7 +911,17 @@ class RayPPOTrainer:
             from tqdm import tqdm
             
             eval_records = []
+            grouped_eval_records = collections.defaultdict(list)
             dataset_corrects = collections.defaultdict(list)
+            reward_kwargs = OmegaConf.to_container(
+                OmegaConf.select(self.config, "custom_reward_function.reward_kwargs"),
+                resolve=True,
+            ) or {}
+            include_step_rubric = _as_bool_flag(self.config.trainer.get("validation_include_step_rubric", False))
+            share_to_all_logs = _as_bool_flag(self.config.trainer.get("validation_share_to_all_logs", False))
+            shared_datasets = set(_split_csv_values(self.config.trainer.get("validation_shared_datasets", "gsm8k-test")))
+            shared_log_dir = self.config.trainer.get("validation_shared_log_dir", "")
+            step_analyzer = _load_custom_reward_attr(self.config, "analyze_response_for_display") if include_step_rubric else None
             
             job_root = os.path.dirname(self.config.trainer.default_local_dir)
             eval_root = os.path.join(job_root, "eval_results")
@@ -901,30 +937,58 @@ class RayPPOTrainer:
                 
                 pred_ans = extract_answer(pred_text)
                 correct = is_correct(pred_ans, gold_ans)
+
+                def extra_value(key, default=None):
+                    values = reward_extra_infos_dict.get(key, [])
+                    if i < len(values):
+                        return values[i]
+                    return default
                 
                 dataset_corrects[(ds_source, ds_name)].append(correct)
-                eval_records.append({
+                record = {
                     "dataset": ds_name,
+                    "data_source": ds_source,
                     "question": sample_inputs[i],
                     "gold": gold_ans,
                     "pred": pred_ans,
                     "generated": pred_text,
                     "correct": correct,
-                    "reward_score": sample_scores[i] if i < len(sample_scores) else 0.0
-                })
+                    "reward_score": sample_scores[i] if i < len(sample_scores) else 0.0,
+                    "reward_mode": extra_value("reward_mode"),
+                    "r_acc": extra_value("r_acc"),
+                    "r_fmt": extra_value("r_fmt"),
+                    "step_process_score": extra_value("step_process_score"),
+                    "step_good_count": extra_value("step_good_count"),
+                    "step_bad_count": extra_value("step_bad_count"),
+                    "step_neutral_count": extra_value("step_neutral_count"),
+                    "step_count": extra_value("step_count"),
+                    "step_norm_z": extra_value("step_norm_z"),
+                    "global_format_pass": extra_value("global_format_pass"),
+                    "final_answer_parsed": extra_value("final_answer_parsed"),
+                }
+                if include_step_rubric and step_analyzer and ds_name in shared_datasets:
+                    try:
+                        step_analysis = step_analyzer(
+                            response_str=pred_text,
+                            ground_truth={"gold_answer": gold_ans},
+                            step_norm_min=reward_kwargs.get("step_norm_min", 3),
+                            require_reasoning=reward_kwargs.get("require_reasoning", False),
+                            require_source=reward_kwargs.get("require_source", False),
+                            bad_on_unused_var=reward_kwargs.get("bad_on_unused_var", True),
+                            bad_on_duplicate_var=reward_kwargs.get("bad_on_duplicate_var", True),
+                            bad_on_missing_dependency=reward_kwargs.get("bad_on_missing_dependency", True),
+                        )
+                        record["target_var"] = step_analysis.get("target_var")
+                        record["score_rubric"] = step_analysis.get("score_rubric")
+                        record["step_analysis"] = step_analysis.get("step_details", [])
+                    except Exception as analysis_error:
+                        record["score_rubric_error"] = str(analysis_error)
+                eval_records.append(record)
+                grouped_eval_records[ds_name].append(record)
                 
             for (ds_source, ds_name), corrects in dataset_corrects.items():
                 acc = sum(corrects) / len(corrects) if len(corrects) > 0 else 0.0
                 metric_dict[f"val/accuracy/{ds_source}/{ds_name}"] = acc
-                
-            # NOTE: Updated to save as JSONL and generate a summary JSON file
-            import json
-            
-            # Save detail files as JSONL
-            eval_df = pd.DataFrame(eval_records)
-            for ds, group in eval_df.groupby("dataset"):
-                jsonl_path = f"{out_dir}/{ds}.jsonl"
-                group.to_json(jsonl_path, orient="records", lines=True, force_ascii=False)
                 
             # Create summary accuracy file
             summary_path = f"{out_dir}/accuracy_summary.json"
@@ -941,6 +1005,21 @@ class RayPPOTrainer:
                 }
             with open(summary_path, 'w', encoding='utf-8') as f:
                 json.dump(summary_data, f, indent=4, ensure_ascii=False)
+
+            case_name = os.path.basename(os.path.dirname(os.path.dirname(job_root)))
+            model_name = os.path.basename(os.path.dirname(job_root))
+            job_name = os.path.basename(job_root)
+            for ds, records in grouped_eval_records.items():
+                jsonl_path = os.path.join(out_dir, f"{ds}.jsonl")
+                with open(jsonl_path, "w", encoding="utf-8") as f:
+                    for record in records:
+                        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+                if share_to_all_logs and shared_log_dir and ds in shared_datasets:
+                    os.makedirs(shared_log_dir, exist_ok=True)
+                    shared_name = f"{case_name}_{model_name}_{job_name}_global_step_{self.global_steps}_{ds}.jsonl"
+                    shared_path = os.path.join(shared_log_dir, shared_name)
+                    shutil.copyfile(jsonl_path, shared_path)
+                    print(f"[Validation] Shared {ds} JSONL to {shared_path}", flush=True)
                 
             # NOTE: Added by Reasoning360: Create a global CSV summary file
             global_summary_path = os.path.join(eval_root, "global_training_summary.csv")
@@ -1305,7 +1384,10 @@ class RayPPOTrainer:
         if self.val_reward_fn is not None and self.config.trainer.get("val_before_train", True):
             val_metrics = self._validate()
             assert val_metrics, f"{val_metrics=}"
-            pprint(f"Initial validation metrics: {val_metrics}")
+            print(
+                f"Initial validation metrics: {json.dumps(val_metrics, sort_keys=True, default=str, ensure_ascii=False)}",
+                flush=True,
+            )
             logger.log(data=val_metrics, step=self.global_steps)
             if self.config.trainer.get("val_only", False):
                 return
@@ -1620,14 +1702,14 @@ class RayPPOTrainer:
                 progress_bar.update(1)
                 self.global_steps += 1
                 elapsed = time.perf_counter() - start
-                print(f"Epoch {epoch + 1} Time Lapsed: {elapsed:.2f}s")
-                print()
-                #logger.log(data=metrics, step=self.global_steps)
-                print(json.dumps(metrics, indent=2, sort_keys=True, default=str))
-                print()
+                print(f"Epoch {epoch + 1} Time Lapsed: {elapsed:.2f}s", flush=True)
+                print(json.dumps(metrics, sort_keys=True, default=str, ensure_ascii=False), flush=True)
 
                 if is_last_step:
-                    pprint(f"Final validation metrics: {last_val_metrics}")
+                    print(
+                        f"Final validation metrics: {json.dumps(last_val_metrics, sort_keys=True, default=str, ensure_ascii=False)}",
+                        flush=True,
+                    )
                     progress_bar.close()
                     return
 

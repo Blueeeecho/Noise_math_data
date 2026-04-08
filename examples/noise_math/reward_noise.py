@@ -213,7 +213,45 @@ def compute_legacy_process_reward(response_str, gold_chain):
     return matched / total
 
 
-def classify_step(
+def step_reason_code(
+    *,
+    header,
+    has_calc,
+    has_reasoning,
+    has_source,
+    require_reasoning,
+    require_source,
+    calc_status,
+    is_last_step,
+    is_goal_var,
+    calc_refs,
+    seen_vars,
+    var_name,
+    is_useful,
+    bad_on_missing_dependency,
+    bad_on_duplicate_var,
+    bad_on_unused_var,
+):
+    if not header or not has_calc:
+        return "missing_calc_or_header"
+    if require_reasoning and not has_reasoning:
+        return "missing_reasoning"
+    if require_source and not has_source:
+        return "missing_source"
+    if calc_status in {"incorrect", "missing"}:
+        return calc_status
+    if bad_on_missing_dependency and is_last_step and is_goal_var and any(ref not in seen_vars for ref in calc_refs):
+        return "missing_dependency"
+    if bad_on_duplicate_var and var_name in seen_vars and not is_goal_var:
+        return "duplicate_var"
+    if bad_on_unused_var and not is_useful:
+        return "unused_var"
+    if calc_status == "correct" and is_useful:
+        return "good_step"
+    return "neutral_step"
+
+
+def inspect_step(
     step_text,
     target_var,
     previous_text,
@@ -231,66 +269,76 @@ def classify_step(
     has_reasoning = bool(re.search(r"\[Reasoning\]", step_text, re.IGNORECASE))
     has_source = bool(re.search(r"\[Source\]", step_text, re.IGNORECASE))
     has_calc = bool(calc_text) and "<<" in calc_text and ">>" in calc_text
-    if not header or not has_calc:
-        return "bad", {
-            "var_name": header["var_name"] if header else None,
-            "calc_status": "missing",
-            "is_useful": False,
-        }
-    if require_reasoning and not has_reasoning:
-        return "bad", {
-            "var_name": header["var_name"],
-            "calc_status": "missing_reasoning",
-            "is_useful": False,
-        }
-    if require_source and not has_source:
-        return "bad", {
-            "var_name": header["var_name"],
-            "calc_status": "missing_source",
-            "is_useful": False,
-        }
-    var_name = header["var_name"]
-    calc_status = check_calc_correct(calc_text)
-    if calc_status in {"incorrect", "missing"}:
-        return "bad", {
-            "var_name": var_name,
-            "calc_status": calc_status,
-            "is_useful": False,
-        }
+    var_name = header["var_name"] if header else None
+    calc_status = check_calc_correct(calc_text) if calc_text else "missing"
     previous_refs = set(extract_var_refs(previous_text))
     future_refs = set(extract_var_refs(future_text))
     is_goal_var = bool(target_var) and var_name == target_var
     is_useful = is_goal_var or var_name in future_refs or var_name in previous_refs
     calc_refs = {ref for ref in extract_var_refs(calc_text) if ref != var_name}
-    if bad_on_missing_dependency and is_last_step and is_goal_var and any(ref not in seen_vars for ref in calc_refs):
-        return "bad", {
-            "var_name": var_name,
-            "calc_status": calc_status,
-            "is_useful": is_useful,
-        }
-    if bad_on_duplicate_var and var_name in seen_vars and not is_goal_var:
-        return "bad", {
-            "var_name": var_name,
-            "calc_status": calc_status,
-            "is_useful": is_useful,
-        }
-    if bad_on_unused_var and not is_useful:
-        return "bad", {
-            "var_name": var_name,
-            "calc_status": calc_status,
-            "is_useful": is_useful,
-        }
-    if calc_status == "correct" and is_useful:
-        return "good", {
-            "var_name": var_name,
-            "calc_status": calc_status,
-            "is_useful": is_useful,
-        }
-    return "neutral", {
+    reason = step_reason_code(
+        header=header,
+        has_calc=has_calc,
+        has_reasoning=has_reasoning,
+        has_source=has_source,
+        require_reasoning=require_reasoning,
+        require_source=require_source,
+        calc_status=calc_status,
+        is_last_step=is_last_step,
+        is_goal_var=is_goal_var,
+        calc_refs=calc_refs,
+        seen_vars=seen_vars,
+        var_name=var_name,
+        is_useful=is_useful,
+        bad_on_missing_dependency=bad_on_missing_dependency,
+        bad_on_duplicate_var=bad_on_duplicate_var,
+        bad_on_unused_var=bad_on_unused_var,
+    )
+    if reason == "good_step":
+        label = "good"
+    elif reason == "neutral_step":
+        label = "neutral"
+    else:
+        label = "bad"
+    return label, {
         "var_name": var_name,
         "calc_status": calc_status,
         "is_useful": is_useful,
+        "has_reasoning": has_reasoning,
+        "has_source": has_source,
+        "has_calc": has_calc,
+        "is_goal_var": is_goal_var,
+        "reason": reason,
+        "step_title": step_text.strip().splitlines()[0].strip() if step_text.strip() else "",
     }
+
+
+def classify_step(
+    step_text,
+    target_var,
+    previous_text,
+    future_text,
+    seen_vars,
+    is_last_step,
+    require_reasoning,
+    require_source,
+    bad_on_unused_var,
+    bad_on_duplicate_var,
+    bad_on_missing_dependency,
+):
+    return inspect_step(
+        step_text=step_text,
+        target_var=target_var,
+        previous_text=previous_text,
+        future_text=future_text,
+        seen_vars=seen_vars,
+        is_last_step=is_last_step,
+        require_reasoning=require_reasoning,
+        require_source=require_source,
+        bad_on_unused_var=bad_on_unused_var,
+        bad_on_duplicate_var=bad_on_duplicate_var,
+        bad_on_missing_dependency=bad_on_missing_dependency,
+    )
 
 
 def compute_step_rule_process_score(
@@ -354,6 +402,75 @@ def compute_step_rule_process_score(
         "z": z,
         "good_ratio": good_count / z,
         "bad_ratio": bad_count / z,
+    }
+
+
+def analyze_response_for_display(
+    response_str,
+    ground_truth,
+    step_norm_min=3,
+    require_reasoning=False,
+    require_source=False,
+    bad_on_unused_var=True,
+    bad_on_duplicate_var=True,
+    bad_on_missing_dependency=True,
+):
+    target_var = extract_target_var(response_str)
+    backward_text = extract_backward_execution(response_str)
+    steps = split_steps(backward_text)
+    seen_vars = set()
+    step_details = []
+    for idx, step_text in enumerate(steps):
+        previous_text = "\n".join(steps[:idx])
+        future_text = "\n".join(steps[idx + 1 :])
+        label, meta = inspect_step(
+            step_text=step_text,
+            target_var=target_var,
+            previous_text=previous_text,
+            future_text=future_text,
+            seen_vars=seen_vars,
+            is_last_step=idx == len(steps) - 1,
+            require_reasoning=require_reasoning,
+            require_source=require_source,
+            bad_on_unused_var=bad_on_unused_var,
+            bad_on_duplicate_var=bad_on_duplicate_var,
+            bad_on_missing_dependency=bad_on_missing_dependency,
+        )
+        if meta.get("var_name"):
+            seen_vars.add(meta["var_name"])
+        step_details.append(
+            {
+                "index": idx + 1,
+                "label": label,
+                "reason": meta.get("reason"),
+                "var_name": meta.get("var_name"),
+                "calc_status": meta.get("calc_status"),
+                "is_goal_var": meta.get("is_goal_var"),
+                "is_useful": meta.get("is_useful"),
+                "has_reasoning": meta.get("has_reasoning"),
+                "has_source": meta.get("has_source"),
+                "has_calc": meta.get("has_calc"),
+                "step_title": meta.get("step_title"),
+            }
+        )
+    gold_ans_text = ground_truth.get("gold_answer", "")
+    if not gold_ans_text and ground_truth.get("gold_chain"):
+        gold_ans_text = extract_final_answer(ground_truth.get("gold_chain", ""))
+    pred_ans_text = extract_final_answer(response_str)
+    pred_val = parse_number(pred_ans_text)
+    gold_val = parse_number(gold_ans_text)
+    return {
+        "target_var": target_var,
+        "format_pass": bool(check_format(response_str)),
+        "final_answer_parsed": bool(pred_val is not None and gold_val is not None),
+        "final_answer_correct": bool(pred_val is not None and gold_val is not None and abs(pred_val - gold_val) < 1e-6),
+        "step_norm_min": max(int(step_norm_min), 1),
+        "step_details": step_details,
+        "score_rubric": {
+            "good_step": "结构合法、计算正确、并且该变量对目标链路有用",
+            "bad_step": "缺少合法结构或计算错误，或存在未闭合依赖、重复变量、无用变量等问题",
+            "neutral_step": "结构与计算基本可解析，但对目标链路贡献不足，未达到 good 标准",
+        },
     }
 
 

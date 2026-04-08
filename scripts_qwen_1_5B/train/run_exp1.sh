@@ -29,6 +29,10 @@ PROMPT_VERSION="${PROMPT_VERSION:-case_1}"
 BASE_MODEL_PATH_OVERRIDE="${BASE_MODEL_PATH_OVERRIDE:-}"
 MODEL_NAME="${MODEL_NAME:-}"
 TOTAL_EPOCHS="${TOTAL_EPOCHS:-500}"
+SHARE_EVAL_JSONL_TO_ALL_LOGS="${SHARE_EVAL_JSONL_TO_ALL_LOGS:-0}"
+SHARED_EVAL_DATASETS="${SHARED_EVAL_DATASETS:-gsm8k-test}"
+SHARED_ALL_LOG_DIR="${SHARED_ALL_LOG_DIR:-/export/home/asifali/Noise_math_data/all_logs}"
+INCLUDE_STEP_SCORE_RUBRIC="${INCLUDE_STEP_SCORE_RUBRIC:-0}"
 BASE_MODEL_PATH_CANDIDATE="/export/home/asifali/Noise_math_data/examples/noise_math/Output/sft_model"
 if [ -n "${BASE_MODEL_PATH_OVERRIDE}" ]; then
     BASE_MODEL_PATH_CANDIDATE="${BASE_MODEL_PATH_OVERRIDE}"
@@ -163,6 +167,9 @@ export SWITCH_EPOCH=${SWITCH_EPOCH}
 # export CUDA_LAUNCH_BLOCKING=1 # Uncomment for easier debugging of CUDA errors
 
 mkdir -p "${JOB_ROOT}" "${CASE_DATA_DIR}"
+if [ "${SHARE_EVAL_JSONL_TO_ALL_LOGS}" = "1" ]; then
+    mkdir -p "${SHARED_ALL_LOG_DIR}"
+fi
 
 # ======================================================================
 
@@ -188,6 +195,7 @@ if [ ! -s "${CASE_DATA_DIR}/test_eval.parquet" ]; then
 fi
 
 echo "Starting GRPO Training on 4 x A100 GPUs"
+echo "Validation and checkpoint saving are enforced once per epoch inside ray_trainer.py."
 
 # Using standard verl PPO trainer logic with CLI overrides for GRPO
 # Key changes for GRPO:
@@ -349,4 +357,8 @@ python3 -m verl.trainer.main_ppo \
     trainer.max_critic_ckpt_to_keep=1 \
     trainer.test_freq=10 \
     trainer.val_before_train=True \
-    trainer.total_epochs=${TOTAL_EPOCHS}
+    trainer.total_epochs=${TOTAL_EPOCHS} \
+    +trainer.validation_share_to_all_logs="${SHARE_EVAL_JSONL_TO_ALL_LOGS}" \
+    +trainer.validation_shared_datasets="${SHARED_EVAL_DATASETS}" \
+    +trainer.validation_shared_log_dir="${SHARED_ALL_LOG_DIR}" \
+    +trainer.validation_include_step_rubric="${INCLUDE_STEP_SCORE_RUBRIC}"

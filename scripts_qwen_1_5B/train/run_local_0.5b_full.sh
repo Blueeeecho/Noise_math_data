@@ -19,9 +19,12 @@ EVAL_OUTPUT_DIR="${JOB_ROOT}/offline_eval/gsm8k-test"
 
 mkdir -p "${JOB_ROOT}" "${DATA_DIR}" "${EVAL_OUTPUT_DIR}"
 
+export INPUT_FILE="/root/autodl-tmp/Reasoning360/examples/noise_math/dataset/Ours/all_backward_data.jsonl"
+export CONVERT_SCRIPT="/root/autodl-tmp/Reasoning360/examples/noise_math/convert_data_noise.py"
 bash /root/autodl-tmp/Reasoning360/scripts_qwen_1_5B/train/prepare_data.sh "${DATA_DIR}" "${PROMPT_VERSION}"
 
 python3 /root/autodl-tmp/Reasoning360/examples/noise_math/scripts/prepare_test_eval_data.py \
+    --test_data_dir "/root/autodl-tmp/Reasoning360/examples/noise_math/dataset/test_data" \
     --output_path "${DATA_DIR}/test_eval.parquet" \
     --prompt_version "${PROMPT_VERSION}"
 

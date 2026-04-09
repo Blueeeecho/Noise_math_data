@@ -96,6 +96,13 @@ def get_prompt_messages(question, prompt_version):
             {"role": "system", "content": SYSTEM_PROMPT_CASE_2},
             {"role": "user", "content": ONE_SHOT_PROMPT_CASE_2.replace(PROMPT_PLACEHOLDER, question)},
         ]
+    elif prompt_version == "case_4":
+        return [
+            {"role": "system", "content": SYSTEM_PROMPT_CASE_2},
+            {"role": "user", "content": "Question:\nEmma is packing fruit for a picnic. She has 4 bags. In each bag, she puts 3 apples and 2 oranges. If she packs everything, how many pieces of fruit does she pack in total?"},
+            {"role": "assistant", "content": "[Goal Analysis]\nTarget: Var{Total_Fruit}\nPlan: I need to calculate how many pieces of fruit are in each bag, then multiply by the total number of bags.\n\n[Backward Execution]\n1. Define Var{Fruit_Per_Bag}:\n   [Reasoning]: First, I calculate how many pieces of fruit Emma puts in one bag. Each bag has 3 apples and 2 oranges, so I add them together.\n   [Source]: \"In each bag, she puts 3 apples and 2 oranges\"\n   [Calc]: Var{Fruit_Per_Bag} = <<3 + 2 = 5>>\n\n2. Calculate Var{Total_Fruit} (Goal):\n   [Reasoning]: Next, I multiply the number of fruit pieces in each bag by the total number of bags to get the total fruit Emma packs.\n   [Source]: \"She has 4 bags\" and Var{Fruit_Per_Bag}\n   [Calc]: Var{Total_Fruit} = <<4 * 5 = 20>>\n\n[Final Answer]\n20"},
+            {"role": "user", "content": f"Now solve the following problem in the same format.\n\nQuestion:\n{question}"}
+        ]
     return [
         {"role": "system", "content": SYSTEM_PROMPT_CASE_1},
         {"role": "user", "content": question},
@@ -105,7 +112,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, help="Input JSONL file (SFT format)")
     parser.add_argument("--output", required=True, help="Output Parquet file")
-    parser.add_argument("--prompt_version", default="case_1", choices=["case_1", "case_2"], help="Prompt template version")
+    parser.add_argument("--prompt_version", default="case_1", choices=["case_1", "case_2", "case_4"], help="Prompt template version")
     args = parser.parse_args()
 
     data = []

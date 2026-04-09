@@ -903,11 +903,21 @@ class RayPPOTrainer:
             
             # Use dynamic current working directory to support both local and remote execution paths
             current_dir = os.getcwd()
-            math_dir = os.path.join(current_dir, "examples", "noise_math")
+            # If the script is run from scripts/..., os.getcwd() might be the root,
+            # or we might already be in examples/noise_math
+            if "examples/noise_math" not in current_dir:
+                math_dir = os.path.join(current_dir, "examples", "noise_math")
+            else:
+                math_dir = current_dir
+                
             if math_dir not in sys.path:
                 sys.path.append(math_dir)
             
-            from eval_model import extract_answer, is_correct
+            try:
+                from eval_model import extract_answer, is_correct
+            except ModuleNotFoundError:
+                # Fallback to absolute import if running from root
+                from examples.noise_math.eval_model import extract_answer, is_correct
             from tqdm import tqdm
             
             eval_records = []
@@ -1384,10 +1394,11 @@ class RayPPOTrainer:
         if self.val_reward_fn is not None and self.config.trainer.get("val_before_train", True):
             val_metrics = self._validate()
             assert val_metrics, f"{val_metrics=}"
-            print(
-                f"Initial validation metrics: {json.dumps(val_metrics, sort_keys=True, default=str, ensure_ascii=False)}",
-                flush=True,
-            )
+            print("=" * 40, flush=True)
+            print("Initial validation metrics:", flush=True)
+            for k, v in sorted(val_metrics.items()):
+                print(f"  {k}: {v}", flush=True)
+            print("=" * 40, flush=True)
             logger.log(data=val_metrics, step=self.global_steps)
             if self.config.trainer.get("val_only", False):
                 return
@@ -1703,13 +1714,19 @@ class RayPPOTrainer:
                 self.global_steps += 1
                 elapsed = time.perf_counter() - start
                 print(f"Epoch {epoch + 1} Time Lapsed: {elapsed:.2f}s", flush=True)
-                print(json.dumps(metrics, sort_keys=True, default=str, ensure_ascii=False), flush=True)
+                
+                print("=" * 40, flush=True)
+                print("Metrics:", flush=True)
+                for k, v in sorted(metrics.items()):
+                    print(f"  {k}: {v}", flush=True)
+                print("=" * 40, flush=True)
 
                 if is_last_step:
-                    print(
-                        f"Final validation metrics: {json.dumps(last_val_metrics, sort_keys=True, default=str, ensure_ascii=False)}",
-                        flush=True,
-                    )
+                    print("=" * 40, flush=True)
+                    print("Final validation metrics:", flush=True)
+                    for k, v in sorted(last_val_metrics.items()):
+                        print(f"  {k}: {v}", flush=True)
+                    print("=" * 40, flush=True)
                     progress_bar.close()
                     return
 

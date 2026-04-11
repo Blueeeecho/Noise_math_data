@@ -1024,12 +1024,6 @@ class RayPPOTrainer:
                 with open(jsonl_path, "w", encoding="utf-8") as f:
                     for record in records:
                         f.write(json.dumps(record, ensure_ascii=False) + "\n")
-                if share_to_all_logs and shared_log_dir and ds in shared_datasets:
-                    os.makedirs(shared_log_dir, exist_ok=True)
-                    shared_name = f"{case_name}_{model_name}_{job_name}_global_step_{self.global_steps}_{ds}.jsonl"
-                    shared_path = os.path.join(shared_log_dir, shared_name)
-                    shutil.copyfile(jsonl_path, shared_path)
-                    print(f"[Validation] Shared {ds} JSONL to {shared_path}", flush=True)
                 
             # NOTE: Added by Reasoning360: Create a global CSV summary file
             global_summary_path = os.path.join(eval_root, "global_training_summary.csv")
@@ -1061,6 +1055,14 @@ class RayPPOTrainer:
                 # Write row data
                 row_values = [str(row_data.get(col, "")) for col in columns]
                 f.write(",".join(row_values) + "\n")
+                
+            if share_to_all_logs and shared_log_dir:
+                os.makedirs(shared_log_dir, exist_ok=True)
+                shared_csv_name = f"{case_name}_{model_name}_{job_name}_summary.csv"
+                shared_csv_path = os.path.join(shared_log_dir, shared_csv_name)
+                import shutil
+                shutil.copyfile(global_summary_path, shared_csv_path)
+                print(f"[Validation] Shared global summary CSV to {shared_csv_path}", flush=True)
                 
         except Exception as e:
             print(f"Error computing exact match accuracy: {e}")

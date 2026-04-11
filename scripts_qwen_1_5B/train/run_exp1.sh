@@ -243,17 +243,17 @@ max_num_gen_batches=10
 #train_prompt_mini_bsz=4  # model grad update batchsize
 
 
-train_prompt_bsz=600  # on-policy model update batchsize: train_prompt_bsz * rollout.n
+train_prompt_bsz=150  # on-policy model update batchsize: train_prompt_bsz * rollout.n
 gen_prompt_bsz=$((train_prompt_bsz * 1))
 
 w_format=0.5
 w_process=1.0
 w_outcome=2.5
 reward_mode="step_rule"
-global_fail_reward=-0.5
+global_fail_reward=0.0
 step_acc_weight=0.7
 step_good_weight=0.4
-step_bad_weight=0.3
+step_bad_weight=0.05
 step_fmt_weight=0.2
 step_norm_min=3
 require_reasoning=False

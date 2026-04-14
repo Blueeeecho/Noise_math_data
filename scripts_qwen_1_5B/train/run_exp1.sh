@@ -50,6 +50,8 @@ REWARD_FUNC="compute_reward"
 
 if [ "${CASE_NAME}" = "case_3" ]; then
     REWARD_FILE="/export/home/asifali/Noise_math_data/examples/noise_math/reward_case_3.py"
+elif [ "${CASE_NAME}" = "case_5" ]; then
+    REWARD_FILE="/export/home/asifali/Noise_math_data/examples/noise_math/reward_case_5.py"
 fi
 
 #export RAY_TMPDIR="/export/home/asifali/HF_cache/RAY_TMP"
@@ -251,9 +253,9 @@ w_process=1.0
 w_outcome=2.5
 reward_mode="step_rule"
 global_fail_reward=-0.5
-step_acc_weight=0.7
+step_acc_weight=1.0
 step_good_weight=0.4
-step_bad_weight=0.3
+step_bad_weight=0.4
 step_fmt_weight=0.2
 step_norm_min=3
 require_reasoning=False
@@ -261,9 +263,25 @@ require_source=False
 bad_on_unused_var=True
 bad_on_duplicate_var=True
 bad_on_missing_dependency=True
+require_source_grounding=False
+bad_on_duplicate_goal_without_new_dependency=False
+bad_on_idle_chain=False
+bad_on_invalid_dependency=False
 acc_weight=0.55
 fmt_weight=0.15
 step_weight=0.30
+
+if [ "${CASE_NAME}" = "case_5" ]; then
+    global_fail_reward=-0.5
+    step_acc_weight=0.7
+    step_good_weight=0.4
+    step_bad_weight=0.3
+    step_fmt_weight=0.2
+    require_source_grounding=True
+    bad_on_duplicate_goal_without_new_dependency=True
+    bad_on_idle_chain=True
+    bad_on_invalid_dependency=True
+fi
 
 
 # Algorithm
@@ -344,6 +362,10 @@ python3 -m verl.trainer.main_ppo \
     +custom_reward_function.reward_kwargs.bad_on_unused_var=${bad_on_unused_var} \
     +custom_reward_function.reward_kwargs.bad_on_duplicate_var=${bad_on_duplicate_var} \
     +custom_reward_function.reward_kwargs.bad_on_missing_dependency=${bad_on_missing_dependency} \
+    +custom_reward_function.reward_kwargs.require_source_grounding=${require_source_grounding} \
+    +custom_reward_function.reward_kwargs.bad_on_duplicate_goal_without_new_dependency=${bad_on_duplicate_goal_without_new_dependency} \
+    +custom_reward_function.reward_kwargs.bad_on_idle_chain=${bad_on_idle_chain} \
+    +custom_reward_function.reward_kwargs.bad_on_invalid_dependency=${bad_on_invalid_dependency} \
     algorithm.use_kl_in_reward=False \
     trainer.critic_warmup=0 \
     trainer.logger="${TRAINER_LOGGERS}" \

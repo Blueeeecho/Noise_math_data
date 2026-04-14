@@ -248,6 +248,11 @@ class AsyncMultiProcessRewardManager:
             ground_truth = data_item.non_tensor_batch["reward_model"]["ground_truth"]
             data_source = data_item.non_tensor_batch[self.reward_fn_key]
             extra_info = data_item.non_tensor_batch.get("extra_info", None)
+            if isinstance(extra_info, dict):
+                extra_info = dict(extra_info)
+            else:
+                extra_info = {}
+            extra_info["prompt_text"] = prompt_str
 
             data_sources.append(data_source)
             solutions.append(response_str)

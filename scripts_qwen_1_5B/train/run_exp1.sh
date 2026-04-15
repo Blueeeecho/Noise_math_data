@@ -272,6 +272,8 @@ fmt_weight=0.15
 step_weight=0.30
 
 if [ "${CASE_NAME}" = "case_5" ]; then
+    train_prompt_bsz=1200
+    gen_prompt_bsz=$((train_prompt_bsz * 1))
     global_fail_reward=-0.5
     step_acc_weight=0.7
     step_good_weight=0.4

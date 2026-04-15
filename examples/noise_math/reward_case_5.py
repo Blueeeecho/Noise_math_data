@@ -705,23 +705,6 @@ def compute_reward(
         legacy_process_score = compute_legacy_process_reward(response_str, gold_chain)
 
     if reward_mode == "step_rule":
-        if not format_ok or not final_answer_parsed:
-            return build_reward_result(
-                global_fail_reward,
-                reward_mode=reward_mode,
-                r_acc=r_acc,
-                r_fmt=0.0,
-                legacy_process_score=legacy_process_score,
-                step_process_score=0.0,
-                step_good_count=0,
-                step_bad_count=0,
-                step_neutral_count=0,
-                step_count=0,
-                step_norm_z=max(int(step_norm_min), 0),
-                global_format_pass=int(format_ok),
-                final_answer_parsed=final_answer_parsed,
-            )
-
         step_metrics = compute_step_rule_process_score(
             response_str=response_str,
             extra_info=extra_info,
@@ -732,17 +715,20 @@ def compute_reward(
             bad_on_invalid_dependency=bad_on_invalid_dependency,
         )
         step_process_score = step_metrics["good_ratio"] - step_metrics["bad_ratio"]
+        format_term = 1.0 if format_ok else -1.0
+        answer_parse_penalty = 0.25 if not final_answer_parsed else 0.0
         total_reward = (
             step_acc_weight * r_acc
             + step_good_weight * step_metrics["good_ratio"]
             - step_bad_weight * step_metrics["bad_ratio"]
-            + step_fmt_weight * 1.0
+            + step_fmt_weight * format_term
+            - answer_parse_penalty
         )
         return build_reward_result(
             total_reward,
             reward_mode=reward_mode,
             r_acc=r_acc,
-            r_fmt=1.0,
+            r_fmt=format_term,
             legacy_process_score=legacy_process_score,
             step_process_score=step_process_score,
             step_good_count=step_metrics["good_count"],

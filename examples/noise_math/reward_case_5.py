@@ -716,13 +716,11 @@ def compute_reward(
         )
         step_process_score = step_metrics["good_ratio"] - step_metrics["bad_ratio"]
         format_term = 1.0 if format_ok else -1.0
-        answer_parse_penalty = 0.25 if not final_answer_parsed else 0.0
         total_reward = (
             step_acc_weight * r_acc
             + step_good_weight * step_metrics["good_ratio"]
             - step_bad_weight * step_metrics["bad_ratio"]
             + step_fmt_weight * format_term
-            - answer_parse_penalty
         )
         return build_reward_result(
             total_reward,

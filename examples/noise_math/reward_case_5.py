@@ -180,6 +180,65 @@ def extract_var_refs(text):
         return []
     return [ref.strip() for ref in VAR_RE.findall(text)]
 
+def extract_numbers(text):
+    if not text:
+        return set()
+    s = text.replace(",", "").replace("$", "")
+    return set(re.findall(r"-?\d+(?:\.\d+)?", s))
+
+
+def extract_calc_segments(calc_text):
+    return [segment.strip() for segment in re.findall(r"<<(.*?)>>", calc_text or "")]
+
+
+def extract_calc_operand_numbers(calc_text):
+    operand_numbers = set()
+    for segment in extract_calc_segments(calc_text):
+        parts = [part.strip() for part in segment.split("=") if part.strip()]
+        expr_parts = parts[:-1] if len(parts) >= 2 else parts
+        for part in expr_parts:
+            operand_numbers.update(extract_numbers(part))
+    return operand_numbers
+
+
+def calc_uses_operator(calc_text):
+    for segment in extract_calc_segments(calc_text):
+        parts = [part.strip() for part in segment.split("=") if part.strip()]
+        expr_parts = parts[:-1] if len(parts) >= 2 else parts
+        for part in expr_parts:
+            expr = _normalize_expr(part)
+            if any(op in expr for op in ["+", "-", "*", "/", "%", "**"]):
+                return True
+    return False
+
+
+def tokenize_identifier(text):
+    normalized = re.sub(r"[_\d]+", " ", text or "")
+    tokens = re.findall(r"[A-Za-z][A-Za-z_-]*", normalized.lower())
+    return {token for token in tokens if len(token) >= 3 and token not in STOPWORDS}
+
+
+def analyze_calc_semantics(var_name, calc_text, reasoning_text, source_text, question_text, calc_refs):
+    operand_numbers = extract_calc_operand_numbers(calc_text)
+    has_operator = calc_uses_operator(calc_text)
+    var_tokens = tokenize_identifier(var_name)
+    context_tokens = (
+        extract_question_keywords(reasoning_text)
+        | extract_question_keywords(source_text)
+        | extract_question_keywords(question_text)
+    )
+    mentions_var_semantics = not var_tokens or bool(var_tokens & context_tokens)
+    direct_fact_copy = not calc_refs and not has_operator and len(operand_numbers) <= 1
+    calc_nontrivial = bool(calc_refs) or has_operator or len(operand_numbers) >= 2
+    semantic_ok = mentions_var_semantics and calc_nontrivial
+    return {
+        "operand_numbers": operand_numbers,
+        "has_operator": has_operator,
+        "mentions_var_semantics": mentions_var_semantics,
+        "direct_fact_copy": direct_fact_copy,
+        "calc_nontrivial": calc_nontrivial,
+        "semantic_ok": semantic_ok,
+    }
 
 def _normalize_expr(expr):
     expr = expr.strip().replace(",", "").replace("$", "")
@@ -350,6 +409,7 @@ def analyze_source_grounding(source_text, question_text, seen_vars):
 
     return {
         "grounded": bool(number_hits or keyword_hits or prev_var_hits),
+        "strong_grounded": bool(number_hits or prev_var_hits),
         "question_number_hits": number_hits,
         "question_keyword_hits": keyword_hits,
         "prev_var_hits": prev_var_hits,
@@ -395,6 +455,7 @@ def classify_step_case5(
     var_name = header["var_name"]
     is_goal_var = bool(target_var) and var_name == target_var
     calc_status = check_calc_correct(calc_text)
+    calc_has_target = bool(re.search(rf"Var\{{\s*{re.escape(var_name)}\s*\}}\s*=", calc_text or "", re.IGNORECASE))
     calc_refs = [ref for ref in extract_var_refs(calc_text) if ref != var_name]
     future_refs = set(extract_var_refs(future_text))
     source_grounding = analyze_source_grounding(source_text, question_text, seen_vars)
@@ -403,34 +464,76 @@ def classify_step_case5(
     )
     prev_var_grounded = bool(source_grounding["prev_var_hits"])
     grounded = source_grounding["grounded"]
+    strong_grounded = source_grounding["strong_grounded"]
     invalid_dependency = any(ref not in seen_vars for ref in calc_refs)
+    source_numbers = extract_question_numbers(source_text)
+    question_numbers = extract_question_numbers(question_text)
+    calc_semantics = analyze_calc_semantics(
+        var_name=var_name,
+        calc_text=calc_text,
+        reasoning_text=reasoning_text,
+        source_text=source_text,
+        question_text=question_text,
+        calc_refs=calc_refs,
+    )
+    operand_numbers = calc_semantics["operand_numbers"]
+    unsupported_operand_numbers = sorted(operand_numbers - question_numbers - source_numbers)
 
     calc_signature = normalize_token(calc_text)
     source_signature = normalize_token(source_text)
-    seen_signatures = var_history.get(var_name, [])
+    vh = var_history.get(
+        var_name,
+        {
+            "signatures": [],
+            "good_set": False,
+            "source_numbers": set(),
+            "source_vars": set(),
+            "calc_refs": set(),
+        },
+    )
+    seen_signatures = vh.get("signatures", [])
     duplicate_same_content = any(sig == (calc_signature, source_signature) for sig in seen_signatures)
+    weak_source_only_keywords = (not strong_grounded) and bool(source_grounding["question_keyword_hits"]) and not source_grounding["question_number_hits"] and not prev_var_grounded
+    new_prev_var_hits = sorted(set(source_grounding["prev_var_hits"]) - set(vh.get("source_vars", set())))
+    new_question_number_hits = sorted(set(source_grounding["question_number_hits"]) - set(vh.get("source_numbers", set())))
+    new_calc_refs = sorted(set(calc_refs) - set(vh.get("calc_refs", set())))
+    has_new_support = bool(new_prev_var_hits or new_question_number_hits or new_calc_refs)
 
-    contributes = False
-    if var_name not in seen_vars and (var_name in future_refs or is_goal_var or question_grounded or prev_var_grounded or calc_refs):
-        contributes = True
-    elif is_goal_var and (question_grounded or prev_var_grounded or bool(calc_refs)):
-        contributes = True
+    introduces_new_used_var = var_name not in seen_vars and var_name in future_refs and calc_semantics["semantic_ok"]
+    first_correct_goal = is_goal_var and (not vh.get("good_set", False)) and calc_semantics["semantic_ok"]
+    combines_prior_layer = (
+        var_name not in seen_vars
+        and prev_var_grounded
+        and bool(source_grounding["question_number_hits"] or operand_numbers & question_numbers)
+        and calc_semantics["semantic_ok"]
+    )
+    contributes = introduces_new_used_var or first_correct_goal or combines_prior_layer
 
     repeated_goal_without_new_dependency = (
         is_goal_var
-        and var_name in seen_vars
-        and not question_grounded
-        and not prev_var_grounded
-        and not calc_refs
+        and vh.get("good_set", False)
+        and not has_new_support
     )
     idle_chain = duplicate_same_content or (
         var_name in seen_vars
-        and not question_grounded
-        and not prev_var_grounded
-        and not calc_refs
-        and var_name not in future_refs
+        and not has_new_support
+        and not contributes
     )
     source_self_talk = require_source_grounding and (not grounded) and bool(source_text.strip())
+    out_of_scope_calc = bool(unsupported_operand_numbers) and not calc_refs
+    weak_source_unrelated_calc = (
+        weak_source_only_keywords
+        and not calc_refs
+        and (calc_semantics["has_operator"] or bool(operand_numbers))
+        and (unsupported_operand_numbers or not bool(operand_numbers & source_numbers))
+    )
+    missing_key_dependency_for_goal = (
+        is_goal_var
+        and not vh.get("good_set", False)
+        and calc_has_target
+        and calc_status == "correct"
+        and (calc_semantics["direct_fact_copy"] or (not prev_var_grounded and not calc_refs and not calc_semantics["mentions_var_semantics"]))
+    )
 
     reason = "neutral_step"
     label = "neutral"
@@ -453,10 +556,28 @@ def classify_step_case5(
     elif bad_on_idle_chain and idle_chain:
         reason = "idle_chain"
         label = "bad"
-    elif grounded and contributes:
+    elif out_of_scope_calc:
+        reason = "out_of_scope"
+        label = "bad"
+    elif weak_source_unrelated_calc:
+        reason = "weak_source_unrelated_calc"
+        label = "bad"
+    elif missing_key_dependency_for_goal:
+        reason = "missing_key_dependency_for_goal"
+        label = "bad"
+    elif (
+        has_reasoning
+        and has_source
+        and has_calc
+        and calc_status == "correct"
+        and calc_has_target
+        and strong_grounded
+        and calc_semantics["semantic_ok"]
+        and contributes
+    ):
         reason = "good_step"
         label = "good"
-    elif grounded and not contributes:
+    elif (grounded or question_grounded or prev_var_grounded or calc_status == "correct") and not contributes:
         reason = "weak_contribution"
         label = "neutral"
     else:
@@ -485,6 +606,9 @@ def classify_step_case5(
         "question_number_hits": source_grounding["question_number_hits"],
         "question_keyword_hits": source_grounding["question_keyword_hits"],
         "prev_var_hits": source_grounding["prev_var_hits"],
+        "calc_refs": calc_refs,
+        "semantic_ok": calc_semantics["semantic_ok"],
+        "unsupported_operand_numbers": unsupported_operand_numbers,
         "step_title": step_text.strip().splitlines()[0].strip() if step_text.strip() else "",
     }
 
@@ -507,7 +631,15 @@ def compute_step_rule_process_score(
     bad_count = 0
     neutral_count = 0
     seen_vars = set()
-    var_history = defaultdict(list)
+    var_history = defaultdict(
+        lambda: {
+            "signatures": [],
+            "good_set": False,
+            "source_numbers": set(),
+            "source_vars": set(),
+            "calc_refs": set(),
+        }
+    )
     step_details = []
 
     if not steps:
@@ -550,7 +682,14 @@ def compute_step_rule_process_score(
             seen_vars.add(meta["var_name"])
             calc_signature = normalize_token(extract_calc_block(step_text))
             source_signature = normalize_token(extract_source_block(step_text))
-            var_history[meta["var_name"]].append((calc_signature, source_signature))
+            vrec = var_history[meta["var_name"]]
+            vrec["signatures"].append((calc_signature, source_signature))
+            vrec["source_numbers"].update(meta.get("question_number_hits", []))
+            vrec["source_vars"].update(meta.get("prev_var_hits", []))
+            vrec["calc_refs"].update(meta.get("calc_refs", []))
+            if meta.get("is_goal_var") and meta.get("calc_status") == "correct" and meta.get("semantic_ok"):
+                vrec["good_set"] = True
+            var_history[meta["var_name"]] = vrec
         step_details.append(
             {
                 "index": idx + 1,
@@ -621,9 +760,9 @@ def analyze_response_for_display(
         "question_text": step_metrics["question_text"],
         "step_details": step_metrics["step_details"],
         "score_rubric": {
-            "good_step": "结构完整、计算正确、Source grounded，并且该步骤对当前题目标求解有真实推进",
-            "bad_step": "缺字段、算错、Source 脱离题干/前序变量、重复刷目标变量、空转链或使用未定义依赖",
-            "neutral_step": "结构与计算基本可解析，但 grounded 或目标推进不足，暂不奖励也不强惩罚",
+            "good_step": "结构完整、计算语义与变量一致、Source 强 grounded，并且该步骤对当前题目标求解有真实推进",
+            "bad_step": "缺字段、算错、弱 Source 硬算、重复改写目标变量、空转链、题外扩展或使用未定义依赖",
+            "neutral_step": "结构与计算基本可解析，但 grounded、语义一致性或目标推进不足，暂不奖励也不强惩罚",
         },
     }
 

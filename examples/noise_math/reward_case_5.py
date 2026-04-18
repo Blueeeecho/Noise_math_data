@@ -499,13 +499,16 @@ def classify_step_case5(
     new_calc_refs = sorted(set(calc_refs) - set(vh.get("calc_refs", set())))
     has_new_support = bool(new_prev_var_hits or new_question_number_hits or new_calc_refs)
 
-    introduces_new_used_var = var_name not in seen_vars and var_name in future_refs and calc_semantics["semantic_ok"]
-    first_correct_goal = is_goal_var and (not vh.get("good_set", False)) and calc_semantics["semantic_ok"]
+    # NOTE (disabled by request): 不再用语义一致性作为 good_step 的必要条件
+    # introduces_new_used_var = var_name not in seen_vars and var_name in future_refs and calc_semantics["semantic_ok"]
+    introduces_new_used_var = (var_name not in seen_vars) and (var_name in future_refs)
+    # first_correct_goal = is_goal_var and (not vh.get("good_set", False)) and calc_semantics["semantic_ok"]
+    first_correct_goal = is_goal_var and (not vh.get("good_set", False))
     combines_prior_layer = (
-        var_name not in seen_vars
+        (var_name not in seen_vars)
         and prev_var_grounded
         and bool(source_grounding["question_number_hits"] or operand_numbers & question_numbers)
-        and calc_semantics["semantic_ok"]
+        # and calc_semantics["semantic_ok"]  # NOTE (disabled by request)
     )
     contributes = introduces_new_used_var or first_correct_goal or combines_prior_layer
 
@@ -572,7 +575,7 @@ def classify_step_case5(
         and calc_status == "correct"
         and calc_has_target
         and strong_grounded
-        and calc_semantics["semantic_ok"]
+        # and calc_semantics["semantic_ok"]  # NOTE (disabled by request)
         and contributes
     ):
         reason = "good_step"

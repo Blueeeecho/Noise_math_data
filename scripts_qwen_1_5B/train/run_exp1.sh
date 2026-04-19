@@ -52,6 +52,8 @@ if [ "${CASE_NAME}" = "case_3" ]; then
     REWARD_FILE="/export/home/asifali/Noise_math_data/examples/noise_math/reward_case_3.py"
 elif [ "${CASE_NAME}" = "case_5" ]; then
     REWARD_FILE="/export/home/asifali/Noise_math_data/examples/noise_math/reward_case_5.py"
+elif [ "${CASE_NAME}" = "case_6" ]; then
+    REWARD_FILE="/export/home/asifali/Noise_math_data/examples/noise_math/reward_case_6.py"
 fi
 
 #export RAY_TMPDIR="/export/home/asifali/HF_cache/RAY_TMP"
@@ -267,6 +269,13 @@ require_source_grounding=False
 bad_on_duplicate_goal_without_new_dependency=False
 bad_on_idle_chain=False
 bad_on_invalid_dependency=False
+step_parser_mode="strict"
+enable_natural_step_parser=False
+strict_step_preferred=True
+strict_format_term=1.0
+natural_format_term=0.5
+failed_format_term=-1.0
+enforce_explicit_step_constraints=False
 acc_weight=0.55
 fmt_weight=0.15
 step_weight=0.30
@@ -283,6 +292,27 @@ if [ "${CASE_NAME}" = "case_5" ]; then
     bad_on_duplicate_goal_without_new_dependency=True
     bad_on_idle_chain=True
     bad_on_invalid_dependency=True
+fi
+
+if [ "${CASE_NAME}" = "case_6" ]; then
+    train_prompt_bsz=1200
+    gen_prompt_bsz=$((train_prompt_bsz * 1))
+    global_fail_reward=-0.5
+    step_acc_weight=0.7
+    step_good_weight=0.4
+    step_bad_weight=0.3
+    step_fmt_weight=0.2
+    require_source_grounding=True
+    bad_on_duplicate_goal_without_new_dependency=True
+    bad_on_idle_chain=True
+    bad_on_invalid_dependency=True
+    step_parser_mode="dual"
+    enable_natural_step_parser=True
+    strict_step_preferred=True
+    strict_format_term=1.0
+    natural_format_term=0.5
+    failed_format_term=-1.0
+    enforce_explicit_step_constraints=True
 fi
 
 
@@ -368,6 +398,13 @@ python3 -m verl.trainer.main_ppo \
     +custom_reward_function.reward_kwargs.bad_on_duplicate_goal_without_new_dependency=${bad_on_duplicate_goal_without_new_dependency} \
     +custom_reward_function.reward_kwargs.bad_on_idle_chain=${bad_on_idle_chain} \
     +custom_reward_function.reward_kwargs.bad_on_invalid_dependency=${bad_on_invalid_dependency} \
+    +custom_reward_function.reward_kwargs.step_parser_mode=${step_parser_mode} \
+    +custom_reward_function.reward_kwargs.enable_natural_step_parser=${enable_natural_step_parser} \
+    +custom_reward_function.reward_kwargs.strict_step_preferred=${strict_step_preferred} \
+    +custom_reward_function.reward_kwargs.strict_format_term=${strict_format_term} \
+    +custom_reward_function.reward_kwargs.natural_format_term=${natural_format_term} \
+    +custom_reward_function.reward_kwargs.failed_format_term=${failed_format_term} \
+    +custom_reward_function.reward_kwargs.enforce_explicit_step_constraints=${enforce_explicit_step_constraints} \
     algorithm.use_kl_in_reward=False \
     trainer.critic_warmup=0 \
     trainer.logger="${TRAINER_LOGGERS}" \

@@ -972,6 +972,12 @@ class RayPPOTrainer:
                     "step_bad_count": extra_value("step_bad_count"),
                     "step_neutral_count": extra_value("step_neutral_count"),
                     "step_count": extra_value("step_count"),
+                    "parsed_step_count": extra_value("parsed_step_count"),
+                    "step_parse_failed": extra_value("step_parse_failed"),
+                    "step_parse_mode": extra_value("step_parse_mode"),
+                    "step_parse_reason": extra_value("step_parse_reason"),
+                    "step_constraint_mode": extra_value("step_constraint_mode"),
+                    "step_constraint_hits": extra_value("step_constraint_hits"),
                     "step_norm_z": extra_value("step_norm_z"),
                     "global_format_pass": extra_value("global_format_pass"),
                     "final_answer_parsed": extra_value("final_answer_parsed"),
@@ -987,9 +993,19 @@ class RayPPOTrainer:
                             bad_on_unused_var=reward_kwargs.get("bad_on_unused_var", True),
                             bad_on_duplicate_var=reward_kwargs.get("bad_on_duplicate_var", True),
                             bad_on_missing_dependency=reward_kwargs.get("bad_on_missing_dependency", True),
+                            require_source_grounding=reward_kwargs.get("require_source_grounding", True),
+                            bad_on_duplicate_goal_without_new_dependency=reward_kwargs.get("bad_on_duplicate_goal_without_new_dependency", True),
+                            bad_on_idle_chain=reward_kwargs.get("bad_on_idle_chain", True),
+                            bad_on_invalid_dependency=reward_kwargs.get("bad_on_invalid_dependency", True),
+                            step_parser_mode=reward_kwargs.get("step_parser_mode", "dual"),
+                            enable_natural_step_parser=reward_kwargs.get("enable_natural_step_parser", True),
                         )
                         record["target_var"] = step_analysis.get("target_var")
                         record["score_rubric"] = step_analysis.get("score_rubric")
+                        record["step_parse_mode_detail"] = step_analysis.get("step_parse_mode")
+                        record["step_parse_failed_detail"] = step_analysis.get("step_parse_failed")
+                        record["step_parse_reason_detail"] = step_analysis.get("step_parse_reason")
+                        record["parsed_step_count_detail"] = step_analysis.get("parsed_step_count")
                         record["step_analysis"] = step_analysis.get("step_details", [])
                     except Exception as analysis_error:
                         record["score_rubric_error"] = str(analysis_error)

@@ -9,7 +9,7 @@ MODEL_PATH="/export/home/asifali/HF_cache/Qwen2.5-0.5B-Instruct"
 MODEL_NAME="Qwen2.5-0.5B-Instruct"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DEFAULT_PROMPT_VERSION="${ACRONYM}"
-if [ "${ACRONYM}" = "case_5" ]; then
+if [ "${ACRONYM}" = "case_5" ] || [ "${ACRONYM}" = "case_6" ]; then
     DEFAULT_PROMPT_VERSION="case_4"
 fi
 PROMPT_VERSION="${PROMPT_VERSION:-${DEFAULT_PROMPT_VERSION}}"

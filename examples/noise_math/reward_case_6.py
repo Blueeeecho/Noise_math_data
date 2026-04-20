@@ -4,9 +4,14 @@ import re
 from collections import Counter, defaultdict
 
 
-STEP_HEADER_RE = re.compile(r"^\s*(\d+(?:\.\d+)*)\.\s*(Define|Derive|Calculate)\s+Var\{([^}]+)\}", re.IGNORECASE | re.MULTILINE)
+STEP_ACTION_CORE = r"(?:Define|Derive|Calculate)(?:\s*/\s*(?:Define|Derive|Calculate))*"
+STEP_HEADER_RE = re.compile(
+    rf"^\s*(\d+(?:\.\d+)*)\.\s*({STEP_ACTION_CORE})\s+Var\{{([^}}]+)\}}",
+    re.IGNORECASE | re.MULTILINE,
+)
+NUMBERED_STEP_HEADER_RE = re.compile(r"^\s*(\d+(?:\.\d+)*)\.\s+.+$", re.IGNORECASE | re.MULTILINE)
 NATURAL_STEP_HEADER_RE = re.compile(
-    r"^\s*(\d+(?:\.\d+)*)\.\s+(?!Define\b|Derive\b|Calculate\s+Var\{)(.+\S.*)$",
+    rf"^\s*(\d+(?:\.\d+)*)\.\s+(?!{STEP_ACTION_CORE}\s+Var\{{)(.+\S.*)$",
     re.IGNORECASE | re.MULTILINE,
 )
 VAR_RE = re.compile(r"Var\{([^}]+)\}")
@@ -168,12 +173,31 @@ def split_steps_strict(backward_text):
     matches = list(STEP_HEADER_RE.finditer(backward_text))
     if not matches:
         return []
+    numbered_boundaries = [match.start() for match in NUMBERED_STEP_HEADER_RE.finditer(backward_text)]
+    steps = []
+    for match in matches:
+        start = match.start()
+        end = len(backward_text)
+        for boundary in numbered_boundaries:
+            if boundary > start:
+                end = boundary
+                break
+        steps.append(backward_text[start:end].strip())
+    return steps
+
+
+def split_steps_numbered(backward_text):
+    if not backward_text:
+        return []
+    matches = list(NUMBERED_STEP_HEADER_RE.finditer(backward_text))
+    if not matches:
+        return []
     steps = []
     for idx, match in enumerate(matches):
         start = match.start()
         end = matches[idx + 1].start() if idx + 1 < len(matches) else len(backward_text)
         steps.append(backward_text[start:end].strip())
-    return steps
+    return [step for step in steps if step]
 
 
 def split_steps_natural(backward_text):
@@ -205,14 +229,35 @@ def parse_steps_dual_mode(backward_text, step_parser_mode="dual", enable_natural
     if step_parser_mode in {"strict", "dual"}:
         strict_steps = split_steps_strict(backward_text)
         if strict_steps:
-            return strict_steps, "strict", "matched_strict_step_headers"
+            if step_parser_mode == "strict":
+                return [{"text": step, "mode": "strict"} for step in strict_steps], "strict", "matched_strict_step_headers"
         if step_parser_mode == "strict":
             return [], "failed", "strict_parser_found_no_steps"
+
+    if step_parser_mode == "dual":
+        numbered_steps = split_steps_numbered(backward_text)
+        if numbered_steps:
+            annotated_steps = []
+            strict_count = 0
+            natural_count = 0
+            for step in numbered_steps:
+                if parse_step_header(step):
+                    annotated_steps.append({"text": step, "mode": "strict"})
+                    strict_count += 1
+                else:
+                    annotated_steps.append({"text": step, "mode": "natural"})
+                    natural_count += 1
+            if strict_count and natural_count:
+                return annotated_steps, "mixed", "matched_mixed_numbered_steps"
+            if strict_count:
+                return annotated_steps, "strict", "matched_strict_numbered_steps"
+            if natural_count:
+                return annotated_steps, "natural", "matched_natural_numbered_steps"
 
     if enable_natural_step_parser and step_parser_mode in {"natural", "dual"}:
         natural_steps = split_steps_natural(backward_text)
         if natural_steps:
-            return natural_steps, "natural", "matched_natural_step_boundaries"
+            return [{"text": step, "mode": "natural"} for step in natural_steps], "natural", "matched_natural_step_boundaries"
         return [], "failed", "natural_parser_found_no_steps"
 
     return [], "failed", "natural_parser_disabled"
@@ -226,7 +271,7 @@ def parse_step_header(step_text):
         return None
     return {
         "step_id": match.group(1).strip(),
-        "action": match.group(2).strip(),
+        "action": re.sub(r"\s+", "", match.group(2).strip()),
         "var_name": match.group(3).strip(),
     }
 
@@ -650,8 +695,12 @@ def classify_step_strict(
         label = "bad"
         reason = "invalid_dependency"
     elif unsupported_operand_numbers:
-        label = "bad"
-        reason = "out_of_scope"
+        if calc_status == "correct" and (source_grounding["question_number_hits"] or source_grounding["prev_var_hits"] or calc_refs):
+            label = "neutral"
+            reason = "partial_out_of_scope"
+        else:
+            label = "bad"
+            reason = "out_of_scope"
     elif bad_on_duplicate_goal_without_new_dependency and repeated_goal_without_new_dependency:
         label = "bad"
         reason = "duplicate_goal_without_new_dependency"
@@ -873,10 +922,12 @@ def compute_step_rule_process_score(
         }
 
     question_numbers = extract_question_numbers(question_text)
-    for idx, step_text in enumerate(steps):
-        future_text = "\n".join(steps[idx + 1 :])
+    for idx, step_info in enumerate(steps):
+        step_text = step_info["text"]
+        step_mode = step_info.get("mode", parse_mode)
+        future_text = "\n".join(item["text"] for item in steps[idx + 1 :])
         is_last_step = idx == len(steps) - 1
-        if parse_mode == "strict":
+        if step_mode == "strict":
             label, meta = classify_step_strict(
                 step_text=step_text,
                 target_var=target_var,
@@ -1130,7 +1181,7 @@ def compute_reward(
             format_term = failed_format_term
         elif step_metrics["step_parse_mode"] == "strict":
             format_term = strict_format_term
-        elif step_metrics["step_parse_mode"] == "natural":
+        elif step_metrics["step_parse_mode"] in {"natural", "mixed"}:
             format_term = natural_format_term
         else:
             format_term = failed_format_term

@@ -1,4 +1,5 @@
 import ast
+import math
 import re
 from collections import Counter, defaultdict
 
@@ -64,12 +65,21 @@ STOPWORDS = {
     "answer",
 }
 
+MAX_NUMERIC_TOKEN_LEN = 18
+
 
 def normalize_number_token(token):
+    raw = str(token).replace(",", "").replace("$", "").strip()
+    if not raw:
+        return ""
+    if len(raw.lstrip("+-").replace(".", "")) > MAX_NUMERIC_TOKEN_LEN:
+        return raw
     try:
-        value = float(str(token).replace(",", "").replace("$", "").strip())
+        value = float(raw)
     except Exception:
-        return str(token).strip()
+        return raw
+    if not math.isfinite(value):
+        return raw
     if abs(value - round(value)) < 1e-9:
         return str(int(round(value)))
     return f"{value:.6f}".rstrip("0").rstrip(".")
@@ -109,7 +119,10 @@ def parse_number(text):
     nums = re.findall(r"(-?\d+(?:\.\d+)?)", clean)
     if nums:
         try:
-            return float(nums[-1])
+            value = float(nums[-1])
+            if not math.isfinite(value):
+                return None
+            return value
         except Exception:
             return None
     return None
@@ -263,7 +276,15 @@ def extract_numbers(text):
     if not text:
         return set()
     clean = str(text).replace(",", "").replace("$", "")
-    return {normalize_number_token(match) for match in re.findall(r"-?\d+(?:\.\d+)?", clean)}
+    values = set()
+    for match in re.findall(r"-?\d+(?:\.\d+)?", clean):
+        digits_only = match.lstrip("+-").replace(".", "")
+        if len(digits_only) > MAX_NUMERIC_TOKEN_LEN:
+            continue
+        normalized = normalize_number_token(match)
+        if normalized:
+            values.add(normalized)
+    return values
 
 
 def extract_calc_segments(calc_text):
@@ -351,7 +372,10 @@ def safe_eval_numeric(expr):
         return None
     try:
         tree = ast.parse(expr, mode="eval")
-        return float(_safe_eval_node(tree))
+        value = float(_safe_eval_node(tree))
+        if not math.isfinite(value):
+            return None
+        return value
     except Exception:
         return None
 

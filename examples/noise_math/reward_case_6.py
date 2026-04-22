@@ -1030,20 +1030,20 @@ def compute_step_rule_process_score(
     )
     step_details = []
 
-    if not steps:
-        z = max(step_norm_min, 0)
-        return {
+    def build_step_metrics(**overrides):
+        metrics = {
             "good_count": 0,
+            "good_count_capped": 0,
             "bad_count": 0,
             "neutral_count": 0,
             "step_count": 0,
             "parsed_step_count": 0,
-            "step_parse_failed": 1,
-            "step_parse_mode": "failed",
-            "step_constraint_mode": "failed",
-            "step_parse_reason": parse_reason,
-            "step_constraint_hits": "parse_failed:1",
-            "z": z,
+            "step_parse_failed": 0,
+            "step_parse_mode": "strict",
+            "step_constraint_mode": "strict",
+            "step_parse_reason": "",
+            "step_constraint_hits": "",
+            "z": 0,
             "good_ratio": 0.0,
             "bad_ratio": 0.0,
             "collapsed_multi_block_count": 0,
@@ -1053,6 +1053,19 @@ def compute_step_rule_process_score(
             "step_details": [],
             "question_text": question_text,
         }
+        metrics.update(overrides)
+        return metrics
+
+    if not steps:
+        z = max(step_norm_min, 0)
+        return build_step_metrics(
+            step_parse_failed=1,
+            step_parse_mode="failed",
+            step_constraint_mode="failed",
+            step_parse_reason=parse_reason,
+            step_constraint_hits="parse_failed:1",
+            z=z,
+        )
 
     for idx, step_info in enumerate(steps):
         step_text = step_info["text"]
@@ -1140,28 +1153,26 @@ def compute_step_rule_process_score(
         for detail in step_details
         if detail.get("introduces_new_intermediate_var") and (detail.get("bridges_to_goal") or detail.get("new_dependency_layer"))
     )
-    return {
-        "good_count": good_count,
-        "bad_count": bad_count,
-        "neutral_count": neutral_count,
-        "step_count": step_count,
-        "parsed_step_count": step_count,
-        "step_parse_failed": 0,
-        "step_parse_mode": parse_mode,
-        "step_constraint_mode": parse_mode,
-        "step_parse_reason": parse_reason,
-        "step_constraint_hits": summarize_step_reasons(step_details),
-        "z": z,
-        "good_count_capped": good_count_capped,
-        "good_ratio": good_count_capped / z,
-        "bad_ratio": bad_count / z,
-        "collapsed_multi_block_count": collapsed_multi_block_count,
-        "has_collapsed_multi_block_step": collapsed_multi_block_count > 0,
-        "structural_chain_count": structural_chain_count,
-        "has_structural_chain": structural_chain_count > 0,
-        "step_details": step_details,
-        "question_text": question_text,
-    }
+    return build_step_metrics(
+        good_count=good_count,
+        good_count_capped=good_count_capped,
+        bad_count=bad_count,
+        neutral_count=neutral_count,
+        step_count=step_count,
+        parsed_step_count=step_count,
+        step_parse_mode=parse_mode,
+        step_constraint_mode=parse_mode,
+        step_parse_reason=parse_reason,
+        step_constraint_hits=summarize_step_reasons(step_details),
+        z=z,
+        good_ratio=good_count_capped / z,
+        bad_ratio=bad_count / z,
+        collapsed_multi_block_count=collapsed_multi_block_count,
+        has_collapsed_multi_block_step=collapsed_multi_block_count > 0,
+        structural_chain_count=structural_chain_count,
+        has_structural_chain=structural_chain_count > 0,
+        step_details=step_details,
+    )
 
 
 def analyze_response_for_display(
@@ -1217,7 +1228,40 @@ def analyze_response_for_display(
 
 
 def build_reward_result(score, **extra):
-    result = {"score": score}
+    result = {
+        "score": score,
+        "reward_mode": "legacy_overlap",
+        "r_acc": 0.0,
+        "r_fmt": 0.0,
+        "raw_good_term": 0.0,
+        "raw_bad_term": 0.0,
+        "raw_process_term": 0.0,
+        "acc_contrib": 0.0,
+        "process_contrib": 0.0,
+        "format_contrib": 0.0,
+        "process_gate": 0.0,
+        "format_gate": 0.0,
+        "length_penalty": 0.0,
+        "legacy_process_score": 0.0,
+        "step_process_score": 0.0,
+        "step_good_count": 0,
+        "step_good_count_capped": 0,
+        "step_bad_count": 0,
+        "step_neutral_count": 0,
+        "step_count": 0,
+        "parsed_step_count": 0,
+        "step_parse_failed": 0,
+        "step_parse_mode": "legacy",
+        "step_parse_reason": "",
+        "step_constraint_mode": "legacy",
+        "step_constraint_hits": "",
+        "collapsed_multi_block_count": 0,
+        "structural_chain_count": 0,
+        "has_structural_chain": False,
+        "step_norm_z": 0,
+        "global_format_pass": 0,
+        "final_answer_parsed": 0,
+    }
     result.update(extra)
     return result
 

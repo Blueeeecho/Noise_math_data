@@ -221,46 +221,13 @@ def split_steps_natural(backward_text):
     return []
 
 
-def parse_steps_dual_mode(backward_text, step_parser_mode="dual", enable_natural_step_parser=True):
-    step_parser_mode = str(step_parser_mode or "dual").strip().lower()
-    if step_parser_mode not in {"strict", "natural", "dual"}:
-        step_parser_mode = "dual"
-
-    if step_parser_mode in {"strict", "dual"}:
-        strict_steps = split_steps_strict(backward_text)
-        if strict_steps:
-            if step_parser_mode == "strict":
-                return [{"text": step, "mode": "strict"} for step in strict_steps], "strict", "matched_strict_step_headers"
-        if step_parser_mode == "strict":
-            return [], "failed", "strict_parser_found_no_steps"
-
-    if step_parser_mode == "dual":
-        numbered_steps = split_steps_numbered(backward_text)
-        if numbered_steps:
-            annotated_steps = []
-            strict_count = 0
-            natural_count = 0
-            for step in numbered_steps:
-                if parse_step_header(step):
-                    annotated_steps.append({"text": step, "mode": "strict"})
-                    strict_count += 1
-                else:
-                    annotated_steps.append({"text": step, "mode": "natural"})
-                    natural_count += 1
-            if strict_count and natural_count:
-                return annotated_steps, "mixed", "matched_mixed_numbered_steps"
-            if strict_count:
-                return annotated_steps, "strict", "matched_strict_numbered_steps"
-            if natural_count:
-                return annotated_steps, "natural", "matched_natural_numbered_steps"
-
-    if enable_natural_step_parser and step_parser_mode in {"natural", "dual"}:
-        natural_steps = split_steps_natural(backward_text)
-        if natural_steps:
-            return [{"text": step, "mode": "natural"} for step in natural_steps], "natural", "matched_natural_step_boundaries"
-        return [], "failed", "natural_parser_found_no_steps"
-
-    return [], "failed", "natural_parser_disabled"
+def parse_steps_dual_mode(backward_text, step_parser_mode="strict", enable_natural_step_parser=False):
+    # Case 6 now uses a strict-only parser to keep reward semantics simple.
+    del step_parser_mode, enable_natural_step_parser
+    strict_steps = split_steps_strict(backward_text)
+    if strict_steps:
+        return [{"text": step, "mode": "strict"} for step in strict_steps], "strict", "matched_strict_step_headers"
+    return [], "failed", "strict_parser_found_no_steps"
 
 
 def parse_step_header(step_text):
@@ -805,6 +772,17 @@ def classify_step_strict(
     )
     label = "neutral"
     reason = "neutral_step"
+    has_reliable_support = bool(source_grounding["question_number_hits"] or source_grounding["prev_var_hits"] or structural_refs)
+    dangerous_goal_out_of_scope = bool(unsupported_operand_numbers) and is_goal_var and is_last_step and calc_has_target
+    dangerous_goal_weak_grounding = (
+        require_source_grounding
+        and (not strong_grounded)
+        and is_goal_var
+        and is_last_step
+        and calc_has_target
+        and not has_reliable_support
+    )
+    misgrounded_goal_step = dangerous_goal_out_of_scope or dangerous_goal_weak_grounding
 
     if not has_reasoning or not has_source or not has_calc:
         label = "bad"
@@ -815,12 +793,18 @@ def classify_step_strict(
     elif bad_on_invalid_dependency and hard_invalid_dependency:
         label = "bad"
         reason = "hard_invalid_dependency"
+    elif dangerous_goal_out_of_scope:
+        label = "bad"
+        reason = "hard_partial_out_of_scope"
     elif weak_invalid_dependency:
         label = "neutral"
         reason = "weak_invalid_dependency"
     elif unsupported_operand_numbers:
         label = "neutral"
         reason = "partial_out_of_scope"
+    elif dangerous_goal_weak_grounding:
+        label = "bad"
+        reason = "hard_weak_grounding"
     elif bad_on_duplicate_goal_without_new_dependency and repeated_goal_without_new_dependency:
         label = "neutral"
         reason = "duplicate_goal_soft_revision"
@@ -830,10 +814,29 @@ def classify_step_strict(
     elif idle_chain_soft:
         label = "neutral"
         reason = "weak_idle_chain"
-    elif is_goal_var and is_last_step and calc_has_target and not collapsed_multi_block_step and not hard_invalid_dependency:
+    elif is_goal_var and is_last_step and calc_has_target and calc_status in {"incorrect", "missing", "unverifiable"}:
+        label = "bad"
+        reason = "unverifiable_goal_calc"
+    elif misgrounded_goal_step:
+        label = "bad"
+        reason = "misgrounded_goal_step"
+    elif (
+        is_goal_var
+        and is_last_step
+        and calc_has_target
+        and calc_status == "correct"
+        and not collapsed_multi_block_step
+        and not hard_invalid_dependency
+    ):
         label = "good"
         reason = "goal_step"
-    elif calc_has_target and (introduces_new_intermediate_var and (bridges_to_goal or new_dependency_layer)) and not collapsed_multi_block_step and not hard_invalid_dependency:
+    elif (
+        calc_has_target
+        and calc_status == "correct"
+        and (introduces_new_intermediate_var and (bridges_to_goal or new_dependency_layer))
+        and not collapsed_multi_block_step
+        and not hard_invalid_dependency
+    ):
         label = "good"
         reason = "good_step"
     elif not strong_grounded and require_source_grounding:
@@ -993,8 +996,9 @@ def compute_step_rule_process_score(
     bad_on_duplicate_goal_without_new_dependency,
     bad_on_idle_chain,
     bad_on_invalid_dependency,
-    step_parser_mode="dual",
-    enable_natural_step_parser=True,
+    step_parser_mode="strict",
+    enable_natural_step_parser=False,
+    good_step_cap=3,
 ):
     target_var = extract_target_var(response_str)
     backward_text = extract_backward_execution(response_str)
@@ -1050,40 +1054,25 @@ def compute_step_rule_process_score(
             "question_text": question_text,
         }
 
-    question_numbers = extract_question_numbers(question_text)
     for idx, step_info in enumerate(steps):
         step_text = step_info["text"]
-        step_mode = step_info.get("mode", parse_mode)
         future_text = "\n".join(item["text"] for item in steps[idx + 1 :])
         is_last_step = idx == len(steps) - 1
-        if step_mode == "strict":
-            label, meta = classify_step_strict(
-                step_text=step_text,
-                target_var=target_var,
-                question_text=question_text,
-                future_text=future_text,
-                seen_vars=seen_vars,
-                var_history=var_history,
-                require_source_grounding=require_source_grounding,
-                bad_on_duplicate_goal_without_new_dependency=bad_on_duplicate_goal_without_new_dependency,
-                bad_on_idle_chain=bad_on_idle_chain,
-                bad_on_invalid_dependency=bad_on_invalid_dependency,
-                is_last_step=is_last_step,
-                future_defined_vars=strict_plan["future_defined_vars"][idx],
-                future_var_used_in_chain=strict_plan["future_var_uses"][idx],
-            )
-        else:
-            label, meta = classify_step_natural(
-                step_text=step_text,
-                question_numbers=question_numbers,
-                previous_result_numbers=previous_result_numbers,
-                future_text=future_text,
-                is_last_step=is_last_step,
-                final_answer_value=final_answer_value,
-                seen_step_signatures=seen_step_signatures,
-                seen_result_signatures=seen_result_signatures,
-                index=idx,
-            )
+        label, meta = classify_step_strict(
+            step_text=step_text,
+            target_var=target_var,
+            question_text=question_text,
+            future_text=future_text,
+            seen_vars=seen_vars,
+            var_history=var_history,
+            require_source_grounding=require_source_grounding,
+            bad_on_duplicate_goal_without_new_dependency=bad_on_duplicate_goal_without_new_dependency,
+            bad_on_idle_chain=bad_on_idle_chain,
+            bad_on_invalid_dependency=bad_on_invalid_dependency,
+            is_last_step=is_last_step,
+            future_defined_vars=strict_plan["future_defined_vars"][idx],
+            future_var_used_in_chain=strict_plan["future_var_uses"][idx],
+        )
 
         if label == "good":
             good_count += 1
@@ -1143,7 +1132,8 @@ def compute_step_rule_process_score(
         )
 
     step_count = len(steps)
-    z = max(step_norm_min, step_count)
+    z = max(step_count, 1)
+    good_count_capped = min(good_count, max(as_int(good_step_cap, 3), 0))
     collapsed_multi_block_count = sum(1 for detail in step_details if detail.get("collapsed_multi_block_step"))
     structural_chain_count = sum(
         1
@@ -1162,7 +1152,8 @@ def compute_step_rule_process_score(
         "step_parse_reason": parse_reason,
         "step_constraint_hits": summarize_step_reasons(step_details),
         "z": z,
-        "good_ratio": good_count / z,
+        "good_count_capped": good_count_capped,
+        "good_ratio": good_count_capped / z,
         "bad_ratio": bad_count / z,
         "collapsed_multi_block_count": collapsed_multi_block_count,
         "has_collapsed_multi_block_step": collapsed_multi_block_count > 0,
@@ -1182,8 +1173,9 @@ def analyze_response_for_display(
     bad_on_duplicate_goal_without_new_dependency=True,
     bad_on_idle_chain=True,
     bad_on_invalid_dependency=True,
-    step_parser_mode="dual",
-    enable_natural_step_parser=True,
+    step_parser_mode="strict",
+    enable_natural_step_parser=False,
+    good_step_cap=3,
     **kwargs,
 ):
     step_metrics = compute_step_rule_process_score(
@@ -1194,8 +1186,9 @@ def analyze_response_for_display(
         bad_on_duplicate_goal_without_new_dependency=as_bool(bad_on_duplicate_goal_without_new_dependency),
         bad_on_idle_chain=as_bool(bad_on_idle_chain),
         bad_on_invalid_dependency=as_bool(bad_on_invalid_dependency),
-        step_parser_mode=step_parser_mode,
-        enable_natural_step_parser=as_bool(enable_natural_step_parser),
+        step_parser_mode="strict",
+        enable_natural_step_parser=False,
+        good_step_cap=max(as_int(good_step_cap, 3), 0),
     )
     gold_ans_text = ground_truth.get("gold_answer", "")
     if not gold_ans_text and ground_truth.get("gold_chain"):
@@ -1216,9 +1209,9 @@ def analyze_response_for_display(
         "parsed_step_count": step_metrics["parsed_step_count"],
         "step_details": step_metrics["step_details"],
         "score_rubric": {
-            "good_step": "strict: 一步一组 block、目标变量对齐、依赖链明确，且属于中间变量链或最终目标步；natural: 合法编号步骤且最终数值节点对齐最终答案",
-            "bad_step": "只保留明确结构失败：严格结构缺关键块、单 step 多组 block、真实未定义依赖、完全重复空转",
-            "neutral_step": "其余弱问题都降为 neutral，包括计算诊断、弱 grounding、弱重复、局部题外数字和未形成稳定依赖链",
+            "good_step": "strict-only: 一步一组 block、目标变量对齐、依赖链明确，且属于中间变量链或最终目标步；最多只奖励前 3 个 good step",
+            "bad_step": "严格结构失败、真实未定义依赖、完全重复空转，以及目标步的题外操作数、弱来源、错误总人数/分母、明显语义错位",
+            "neutral_step": "仅保留中间步骤的弱问题，例如轻微 grounding 不足、局部题外数字和未形成稳定依赖链",
         },
     }
 
@@ -1242,10 +1235,10 @@ def compute_reward(
     enable_outcome=True,
     reward_mode="legacy_overlap",
     global_fail_reward=-0.5,
-    step_acc_weight=0.7,
+    step_acc_weight=0.8,
     step_good_weight=0.4,
-    step_bad_weight=0.3,
-    step_fmt_weight=0.2,
+    step_bad_weight=0.5,
+    step_fmt_weight=0.1,
     step_norm_min=3,
     require_reasoning=False,
     require_source=False,
@@ -1256,13 +1249,16 @@ def compute_reward(
     bad_on_duplicate_goal_without_new_dependency=True,
     bad_on_idle_chain=True,
     bad_on_invalid_dependency=True,
-    step_parser_mode="dual",
-    enable_natural_step_parser=True,
+    step_parser_mode="strict",
+    enable_natural_step_parser=False,
     strict_step_preferred=True,
     strict_format_term=1.0,
     natural_format_term=0.5,
-    failed_format_term=-1.0,
+    failed_format_term=0.0,
     enforce_explicit_step_constraints=True,
+    good_step_cap=3,
+    length_penalty_start=4,
+    length_penalty_per_step=0.1,
     **kwargs,
 ):
     response_str = solution_str or ""
@@ -1274,10 +1270,10 @@ def compute_reward(
     w_process = as_float(w_process, 1.0)
     w_outcome = as_float(w_outcome, 2.5)
     global_fail_reward = as_float(global_fail_reward, -0.5)
-    step_acc_weight = as_float(step_acc_weight, 0.7)
+    step_acc_weight = as_float(step_acc_weight, 0.8)
     step_good_weight = as_float(step_good_weight, 0.4)
-    step_bad_weight = as_float(step_bad_weight, 0.3)
-    step_fmt_weight = as_float(step_fmt_weight, 0.2)
+    step_bad_weight = as_float(step_bad_weight, 0.5)
+    step_fmt_weight = as_float(step_fmt_weight, 0.1)
     step_norm_min = max(as_int(step_norm_min, 3), 1)
     require_source_grounding = as_bool(require_source_grounding)
     bad_on_duplicate_goal_without_new_dependency = as_bool(bad_on_duplicate_goal_without_new_dependency)
@@ -1287,7 +1283,10 @@ def compute_reward(
     strict_step_preferred = as_bool(strict_step_preferred)
     strict_format_term = as_float(strict_format_term, 1.0)
     natural_format_term = as_float(natural_format_term, 0.5)
-    failed_format_term = as_float(failed_format_term, -1.0)
+    failed_format_term = as_float(failed_format_term, 0.0)
+    good_step_cap = max(as_int(good_step_cap, 3), 0)
+    length_penalty_start = max(as_int(length_penalty_start, 4), 0)
+    length_penalty_per_step = max(as_float(length_penalty_per_step, 0.1), 0.0)
 
     gold_chain = ground_truth.get("gold_chain", "")
     gold_ans_text = ground_truth.get("gold_answer", "")
@@ -1312,7 +1311,6 @@ def compute_reward(
         legacy_process_score = compute_legacy_process_reward(response_str, gold_chain)
 
     if reward_mode == "step_rule":
-        parser_mode = "strict" if strict_step_preferred and str(step_parser_mode).strip().lower() == "strict" else step_parser_mode
         step_metrics = compute_step_rule_process_score(
             response_str=response_str,
             extra_info=extra_info,
@@ -1321,39 +1319,20 @@ def compute_reward(
             bad_on_duplicate_goal_without_new_dependency=bad_on_duplicate_goal_without_new_dependency,
             bad_on_idle_chain=bad_on_idle_chain,
             bad_on_invalid_dependency=bad_on_invalid_dependency,
-            step_parser_mode=parser_mode,
-            enable_natural_step_parser=enable_natural_step_parser,
+            step_parser_mode="strict",
+            enable_natural_step_parser=False,
+            good_step_cap=good_step_cap,
         )
         step_process_score = step_metrics["good_ratio"] - step_metrics["bad_ratio"]
-        process_gate = 0.4 + 0.6 * r_acc
-        if not format_ok:
-            format_term = failed_format_term
-            format_gate = 0.0
-        else:
-            if step_metrics["step_parse_mode"] == "strict":
-                base_format_term = strict_format_term
-            elif step_metrics["step_parse_mode"] in {"natural", "mixed"}:
-                base_format_term = natural_format_term
-            else:
-                base_format_term = failed_format_term
-
-            if base_format_term <= 0:
-                format_term = base_format_term
-            else:
-                # Split format into base compliance and explicit intermediate-chain structure.
-                format_term = base_format_term * 0.7
-                if step_metrics.get("has_structural_chain"):
-                    format_term += base_format_term * 0.3
-                if step_metrics.get("has_collapsed_multi_block_step"):
-                    format_term = min(format_term, 0.0)
-            format_gate = 0.2 + 0.8 * r_acc
+        format_term = strict_format_term if (format_ok and step_metrics["step_parse_mode"] == "strict") else 0.0
         raw_good_term = step_good_weight * step_metrics["good_ratio"]
         raw_bad_term = step_bad_weight * step_metrics["bad_ratio"]
         raw_process_term = raw_good_term - raw_bad_term
         acc_contrib = step_acc_weight * r_acc
-        process_contrib = process_gate * raw_process_term
-        format_contrib = step_fmt_weight * format_gate * format_term
-        total_reward = acc_contrib + process_contrib + format_contrib
+        process_contrib = raw_process_term
+        format_contrib = step_fmt_weight * format_term
+        length_penalty = max(step_metrics["step_count"] - length_penalty_start, 0) * length_penalty_per_step
+        total_reward = acc_contrib + process_contrib + format_contrib - length_penalty
         return build_reward_result(
             total_reward,
             reward_mode=reward_mode,
@@ -1365,11 +1344,13 @@ def compute_reward(
             acc_contrib=acc_contrib,
             process_contrib=process_contrib,
             format_contrib=format_contrib,
-            process_gate=process_gate,
-            format_gate=format_gate,
+            process_gate=1.0,
+            format_gate=1.0,
+            length_penalty=length_penalty,
             legacy_process_score=legacy_process_score,
             step_process_score=step_process_score,
             step_good_count=step_metrics["good_count"],
+            step_good_count_capped=step_metrics["good_count_capped"],
             step_bad_count=step_metrics["bad_count"],
             step_neutral_count=step_metrics["neutral_count"],
             step_count=step_metrics["step_count"],

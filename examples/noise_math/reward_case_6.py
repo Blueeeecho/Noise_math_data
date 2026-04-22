@@ -1242,10 +1242,10 @@ def compute_reward(
     enable_outcome=True,
     reward_mode="legacy_overlap",
     global_fail_reward=-0.5,
-    step_acc_weight=0.7,
-    step_good_weight=0.4,
-    step_bad_weight=0.3,
-    step_fmt_weight=0.2,
+    step_acc_weight=1.0,
+    step_good_weight=0.25,
+    step_bad_weight=0.2,
+    step_fmt_weight=0.05,
     step_norm_min=3,
     require_reasoning=False,
     require_source=False,
@@ -1274,10 +1274,10 @@ def compute_reward(
     w_process = as_float(w_process, 1.0)
     w_outcome = as_float(w_outcome, 2.5)
     global_fail_reward = as_float(global_fail_reward, -0.5)
-    step_acc_weight = as_float(step_acc_weight, 0.7)
-    step_good_weight = as_float(step_good_weight, 0.4)
-    step_bad_weight = as_float(step_bad_weight, 0.3)
-    step_fmt_weight = as_float(step_fmt_weight, 0.2)
+    step_acc_weight = as_float(step_acc_weight, 1.0)
+    step_good_weight = as_float(step_good_weight, 0.25)
+    step_bad_weight = as_float(step_bad_weight, 0.2)
+    step_fmt_weight = as_float(step_fmt_weight, 0.05)
     step_norm_min = max(as_int(step_norm_min, 3), 1)
     require_source_grounding = as_bool(require_source_grounding)
     bad_on_duplicate_goal_without_new_dependency = as_bool(bad_on_duplicate_goal_without_new_dependency)
@@ -1325,8 +1325,10 @@ def compute_reward(
             enable_natural_step_parser=enable_natural_step_parser,
         )
         step_process_score = step_metrics["good_ratio"] - step_metrics["bad_ratio"]
+        process_gate = 0.4 + 0.6 * r_acc
         if not format_ok:
             format_term = failed_format_term
+            format_gate = 0.0
         else:
             if step_metrics["step_parse_mode"] == "strict":
                 base_format_term = strict_format_term
@@ -1344,17 +1346,27 @@ def compute_reward(
                     format_term += base_format_term * 0.3
                 if step_metrics.get("has_collapsed_multi_block_step"):
                     format_term = min(format_term, 0.0)
-        total_reward = (
-            step_acc_weight * r_acc
-            + step_good_weight * step_metrics["good_ratio"]
-            - step_bad_weight * step_metrics["bad_ratio"]
-            + step_fmt_weight * format_term
-        )
+            format_gate = 0.2 + 0.8 * r_acc
+        raw_good_term = step_good_weight * step_metrics["good_ratio"]
+        raw_bad_term = step_bad_weight * step_metrics["bad_ratio"]
+        raw_process_term = raw_good_term - raw_bad_term
+        acc_contrib = step_acc_weight * r_acc
+        process_contrib = process_gate * raw_process_term
+        format_contrib = step_fmt_weight * format_gate * format_term
+        total_reward = acc_contrib + process_contrib + format_contrib
         return build_reward_result(
             total_reward,
             reward_mode=reward_mode,
             r_acc=r_acc,
             r_fmt=format_term,
+            raw_good_term=raw_good_term,
+            raw_bad_term=raw_bad_term,
+            raw_process_term=raw_process_term,
+            acc_contrib=acc_contrib,
+            process_contrib=process_contrib,
+            format_contrib=format_contrib,
+            process_gate=process_gate,
+            format_gate=format_gate,
             legacy_process_score=legacy_process_score,
             step_process_score=step_process_score,
             step_good_count=step_metrics["good_count"],
@@ -1375,12 +1387,23 @@ def compute_reward(
             final_answer_parsed=final_answer_parsed,
         )
 
-    total_reward = (w_format * r_format) + (w_process * legacy_process_score) + (w_outcome * r_acc)
+    format_contrib = w_format * r_format
+    process_contrib = w_process * legacy_process_score
+    acc_contrib = w_outcome * r_acc
+    total_reward = format_contrib + process_contrib + acc_contrib
     return build_reward_result(
         total_reward,
         reward_mode=reward_mode,
         r_acc=r_acc,
         r_fmt=1.0 if format_ok else 0.0,
+        raw_good_term=0.0,
+        raw_bad_term=0.0,
+        raw_process_term=legacy_process_score,
+        acc_contrib=acc_contrib,
+        process_contrib=process_contrib,
+        format_contrib=format_contrib,
+        process_gate=0.0,
+        format_gate=0.0,
         legacy_process_score=legacy_process_score,
         step_process_score=0.0,
         step_good_count=0,

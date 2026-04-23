@@ -88,7 +88,7 @@ def test_compute_reward_step_rule_parse_failed_does_not_crash():
     assert "step_parse_reason" in result
 
 
-def test_good_step_cap_applies_to_strict_good_steps():
+def test_case5_like_strict_good_steps_are_fully_rewarded():
     steps = (
         "1. Define Var{A}:\n"
         "   [Reasoning]: First, use the number from the question.\n"
@@ -125,8 +125,8 @@ def test_good_step_cap_applies_to_strict_good_steps():
         good_step_cap=3,
     )
     assert metrics["good_count"] == 5
-    assert metrics["good_count_capped"] == 3
-    assert math.isclose(metrics["good_ratio"], 3 / 5)
+    assert metrics["good_count_capped"] == 5
+    assert math.isclose(metrics["good_ratio"], 1.0)
 
 
 def test_collapsed_multi_block_step_is_tracked_and_not_good():
@@ -157,7 +157,7 @@ def test_collapsed_multi_block_step_is_tracked_and_not_good():
     assert metrics["bad_count"] >= 1
 
 
-def test_length_penalty_applies_after_four_steps():
+def test_length_penalty_no_longer_affects_step_rule_score():
     steps = (
         "1. Define Var{A}:\n"
         "   [Reasoning]: Set A.\n"
@@ -191,7 +191,48 @@ def test_length_penalty_applies_after_four_steps():
         length_penalty_per_step=0.1,
     )
     assert result["step_count"] == 5
-    assert math.isclose(result["length_penalty"], 0.1)
+    assert math.isclose(result["length_penalty"], 0.0)
+    expected = (
+        0.7 * result["r_acc"]
+        + 0.4 * (result["step_good_count"] / result["step_norm_z"])
+        - 0.3 * (result["step_bad_count"] / result["step_norm_z"])
+        + 0.2 * result["r_fmt"]
+    )
+    assert math.isclose(result["score"], expected)
+
+
+def test_step_rule_uses_case5_like_formula_with_strict_format():
+    steps = (
+        "1. Define Var{A}:\n"
+        "   [Reasoning]: Use the first number from the question.\n"
+        "   [Source]: \"A is 2\"\n"
+        "   [Calc]: Var{A} = <<2>>\n\n"
+        "2. Define Var{B}:\n"
+        "   [Reasoning]: Use Var{A} and the second number to derive B.\n"
+        "   [Source]: Var{A} and \"B adds 3\"\n"
+        "   [Calc]: Var{B} = <<2 + 3 = 5>>\n\n"
+        "3. Calculate Var{Total}:\n"
+        "   [Reasoning]: Use Var{B} to get the final target.\n"
+        "   [Source]: Var{B}\n"
+        "   [Calc]: Var{Total} = <<5>>"
+    )
+    response = _strict_response("Total", steps, "5")
+    result = reward_case_6.compute_reward(
+        data_source="math_noise",
+        solution_str=response,
+        ground_truth=_ground_truth("5"),
+        extra_info=_extra_info("A is 2. B adds 3 more."),
+        reward_mode="step_rule",
+    )
+    expected = (
+        0.7 * result["r_acc"]
+        + 0.4 * (result["step_good_count"] / result["step_norm_z"])
+        - 0.3 * (result["step_bad_count"] / result["step_norm_z"])
+        + 0.2 * result["r_fmt"]
+    )
+    assert math.isclose(result["score"], expected)
+    assert math.isclose(result["length_penalty"], 0.0)
+    assert result["r_fmt"] == 1.0
 
 
 def test_legacy_mode_returns_stable_schema():

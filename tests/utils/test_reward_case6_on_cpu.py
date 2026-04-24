@@ -61,6 +61,7 @@ def test_step_rule_process_score_parse_failed_schema_is_stable():
     )
     assert metrics["step_parse_failed"] == 1
     assert metrics["good_count_capped"] == 0
+    assert metrics["bad_count_capped"] == 1
     assert metrics["step_constraint_mode"] == "failed"
     assert "step_details" in metrics
 
@@ -91,30 +92,30 @@ def test_compute_reward_step_rule_parse_failed_does_not_crash():
 def test_case5_like_strict_good_steps_are_fully_rewarded():
     steps = (
         "1. Define Var{A}:\n"
-        "   [Reasoning]: First, use the number from the question.\n"
-        "   [Source]: \"A is 2\"\n"
-        "   [Calc]: Var{A} = <<2>>\n\n"
+        "   [Reasoning]: First, combine two grounded question numbers.\n"
+        "   [Source]: \"Use 1 and 2\"\n"
+        "   [Calc]: Var{A} = <<1 + 2 = 3>>\n\n"
         "2. Define Var{B}:\n"
-        "   [Reasoning]: Next, use Var{A} and the same question number 2 to derive B.\n"
-        "   [Source]: Var{A} and \"2\"\n"
-        "   [Calc]: Var{B} = <<2 + 2 = 4>>\n\n"
+        "   [Reasoning]: Next, use Var{A} and a grounded question number to derive B.\n"
+        "   [Source]: Var{A} and \"3 and 2\"\n"
+        "   [Calc]: Var{B} = <<3 + 2 = 5>>\n\n"
         "3. Define Var{C}:\n"
-        "   [Reasoning]: Next, use Var{B} and the same question number 2 to derive C.\n"
-        "   [Source]: Var{B} and \"2\"\n"
-        "   [Calc]: Var{C} = <<4 + 2 = 6>>\n\n"
+        "   [Reasoning]: Next, use Var{B} and another grounded question number to derive C.\n"
+        "   [Source]: Var{B} and \"5 and 2\"\n"
+        "   [Calc]: Var{C} = <<5 + 2 = 7>>\n\n"
         "4. Define Var{D}:\n"
-        "   [Reasoning]: Then, use Var{C} and the same question number 2 to derive D.\n"
-        "   [Source]: Var{C} and \"2\"\n"
-        "   [Calc]: Var{D} = <<6 + 2 = 8>>\n\n"
+        "   [Reasoning]: Then, use Var{C} and another grounded question number to derive D.\n"
+        "   [Source]: Var{C} and \"7 and 2\"\n"
+        "   [Calc]: Var{D} = <<7 + 2 = 9>>\n\n"
         "5. Calculate Var{Total}:\n"
-        "   [Reasoning]: Finally, use Var{D} and the same question number 2 to get the target.\n"
-        "   [Source]: Var{D} and \"2\"\n"
-        "   [Calc]: Var{Total} = <<8 + 2 = 10>>"
+        "   [Reasoning]: Finally, use Var{D} and a grounded question number to get the target.\n"
+        "   [Source]: Var{D} and \"9 and 1\"\n"
+        "   [Calc]: Var{Total} = <<9 + 1 = 10>>"
     )
     response = _strict_response("Total", steps, "10")
     metrics = reward_case_6.compute_step_rule_process_score(
         response_str=response,
-        extra_info=_extra_info("A is 2, and the chain may use 2, 4, 6, 8, and 10."),
+        extra_info=_extra_info("Use 1 and 2, then plus 2, plus 2, plus 2, and finally plus 1."),
         step_norm_min=3,
         require_source_grounding=True,
         bad_on_duplicate_goal_without_new_dependency=True,
@@ -124,9 +125,130 @@ def test_case5_like_strict_good_steps_are_fully_rewarded():
         enable_natural_step_parser=False,
         good_step_cap=3,
     )
-    assert metrics["good_count"] == 5
-    assert metrics["good_count_capped"] == 5
-    assert math.isclose(metrics["good_ratio"], 1.0)
+    assert metrics["good_count"] >= 4
+    assert metrics["good_count_capped"] == 3
+    assert math.isclose(metrics["good_ratio"], 3 / 5)
+
+
+def test_intermediate_step_with_calc_refs_can_be_good_without_future_refs():
+    steps = (
+        "1. Define Var{Base}:\n"
+        "   [Reasoning]: Record the given base value.\n"
+        "   [Source]: \"Base is 2\"\n"
+        "   [Calc]: Var{Base} = <<2>>\n\n"
+        "2. Define Var{Scratch}:\n"
+        "   [Reasoning]: Derive a new grounded intermediate from Base.\n"
+        "   [Source]: Var{Base} and \"plus 1\"\n"
+        "   [Calc]: Var{Scratch} = <<Var{Base} + 1 = 3>><<2 + 1 = 3>>\n\n"
+        "3. Calculate Var{Total}:\n"
+        "   [Reasoning]: Use the target number from the question.\n"
+        "   [Source]: \"Total is 5\"\n"
+        "   [Calc]: Var{Total} = <<5>>"
+    )
+    response = _strict_response("Total", steps, "5")
+    metrics = reward_case_6.compute_step_rule_process_score(
+        response_str=response,
+        extra_info=_extra_info("Base is 2. plus 1. Total is 5."),
+        step_norm_min=3,
+        require_source_grounding=True,
+        bad_on_duplicate_goal_without_new_dependency=True,
+        bad_on_idle_chain=True,
+        bad_on_invalid_dependency=True,
+        step_parser_mode="strict",
+        enable_natural_step_parser=False,
+        good_step_cap=3,
+        bad_step_cap=3,
+    )
+    assert metrics["step_details"][1]["label"] == "good"
+
+
+def test_direct_fact_copy_intermediate_is_neutral():
+    steps = (
+        "1. Define Var{Scratch}:\n"
+        "   [Reasoning]: Record the question number as a grounded intermediate value.\n"
+        "   [Source]: \"Scratch is 2\"\n"
+        "   [Calc]: Var{Scratch} = <<2>>\n\n"
+        "2. Calculate Var{Total}:\n"
+        "   [Reasoning]: Use the target number from the question.\n"
+        "   [Source]: \"Total is 5\"\n"
+        "   [Calc]: Var{Total} = <<5>>"
+    )
+    response = _strict_response("Total", steps, "5")
+    metrics = reward_case_6.compute_step_rule_process_score(
+        response_str=response,
+        extra_info=_extra_info("Scratch is 2. Total is 5."),
+        step_norm_min=3,
+        require_source_grounding=True,
+        bad_on_duplicate_goal_without_new_dependency=True,
+        bad_on_idle_chain=True,
+        bad_on_invalid_dependency=True,
+        step_parser_mode="strict",
+        enable_natural_step_parser=False,
+        good_step_cap=3,
+        bad_step_cap=3,
+    )
+    assert metrics["step_details"][0]["label"] == "neutral"
+    assert metrics["step_details"][0]["reason"] == "weak_contribution"
+
+
+def test_intermediate_step_with_two_grounded_numbers_can_be_good():
+    steps = (
+        "1. Define Var{Combo}:\n"
+        "   [Reasoning]: Combine two grounded question numbers into a new variable.\n"
+        "   [Source]: \"There are 2 red marbles and 3 blue marbles\"\n"
+        "   [Calc]: Var{Combo} = <<2 + 3 = 5>>\n\n"
+        "2. Calculate Var{Total}:\n"
+        "   [Reasoning]: Use the target number from the question.\n"
+        "   [Source]: \"Total is 7\"\n"
+        "   [Calc]: Var{Total} = <<7>>"
+    )
+    response = _strict_response("Total", steps, "7")
+    metrics = reward_case_6.compute_step_rule_process_score(
+        response_str=response,
+        extra_info=_extra_info("There are 2 red marbles and 3 blue marbles. Total is 7."),
+        step_norm_min=3,
+        require_source_grounding=True,
+        bad_on_duplicate_goal_without_new_dependency=True,
+        bad_on_idle_chain=True,
+        bad_on_invalid_dependency=True,
+        step_parser_mode="strict",
+        enable_natural_step_parser=False,
+        good_step_cap=3,
+        bad_step_cap=3,
+    )
+    assert metrics["step_details"][0]["label"] == "good"
+
+
+def test_intermediate_step_with_mixed_question_number_and_previous_var_can_be_good():
+    steps = (
+        "1. Define Var{Base}:\n"
+        "   [Reasoning]: Record the base value.\n"
+        "   [Source]: \"Base is 2\"\n"
+        "   [Calc]: Var{Base} = <<2>>\n\n"
+        "2. Define Var{Mixed}:\n"
+        "   [Reasoning]: Combine the previous variable with a grounded question number.\n"
+        "   [Source]: Var{Base} and \"plus 3\"\n"
+        "   [Calc]: Var{Mixed} = <<2 + 3 = 5>>\n\n"
+        "3. Calculate Var{Total}:\n"
+        "   [Reasoning]: Use the target number from the question.\n"
+        "   [Source]: \"Total is 8\"\n"
+        "   [Calc]: Var{Total} = <<8>>"
+    )
+    response = _strict_response("Total", steps, "8")
+    metrics = reward_case_6.compute_step_rule_process_score(
+        response_str=response,
+        extra_info=_extra_info("Base is 2 and plus 3. Total is 8."),
+        step_norm_min=3,
+        require_source_grounding=True,
+        bad_on_duplicate_goal_without_new_dependency=True,
+        bad_on_idle_chain=True,
+        bad_on_invalid_dependency=True,
+        step_parser_mode="strict",
+        enable_natural_step_parser=False,
+        good_step_cap=3,
+        bad_step_cap=3,
+    )
+    assert metrics["step_details"][1]["label"] == "good"
 
 
 def test_collapsed_multi_block_step_is_tracked_and_not_good():
@@ -194,8 +316,8 @@ def test_length_penalty_no_longer_affects_step_rule_score():
     assert math.isclose(result["length_penalty"], 0.0)
     expected = (
         0.7 * result["r_acc"]
-        + 0.4 * (result["step_good_count"] / result["step_norm_z"])
-        - 0.3 * (result["step_bad_count"] / result["step_norm_z"])
+        + 0.45 * (result["step_good_count_capped"] / result["step_norm_z"])
+        - 0.3 * (result["step_bad_count_capped"] / result["step_norm_z"])
         + 0.2 * result["r_fmt"]
     )
     assert math.isclose(result["score"], expected)
@@ -226,13 +348,142 @@ def test_step_rule_uses_case5_like_formula_with_strict_format():
     )
     expected = (
         0.7 * result["r_acc"]
-        + 0.4 * (result["step_good_count"] / result["step_norm_z"])
-        - 0.3 * (result["step_bad_count"] / result["step_norm_z"])
+        + 0.45 * (result["step_good_count_capped"] / result["step_norm_z"])
+        - 0.3 * (result["step_bad_count_capped"] / result["step_norm_z"])
         + 0.2 * result["r_fmt"]
     )
     assert math.isclose(result["score"], expected)
     assert math.isclose(result["length_penalty"], 0.0)
     assert result["r_fmt"] == 1.0
+
+
+def test_edge_case_reasons_are_neutral_not_bad():
+    steps = (
+        "1. Define Var{A}:\n"
+        "   [Reasoning]: Use a number that is outside the grounded source.\n"
+        "   [Source]: \"A is 2\"\n"
+        "   [Calc]: Var{A} = <<99>>\n\n"
+        "2. Calculate Var{Total}:\n"
+        "   [Reasoning]: First correct target step.\n"
+        "   [Source]: \"Total is 1\"\n"
+        "   [Calc]: Var{Total} = <<1>>\n\n"
+        "3. Calculate Var{Total}:\n"
+        "   [Reasoning]: Repeat the goal without any new support.\n"
+        "   [Source]: \"Total stays 1\"\n"
+        "   [Calc]: Var{Total} = <<1>>"
+    )
+    response = _strict_response("Total", steps, "1")
+    metrics = reward_case_6.compute_step_rule_process_score(
+        response_str=response,
+        extra_info=_extra_info("A is 2. Total is 1."),
+        step_norm_min=3,
+        require_source_grounding=True,
+        bad_on_duplicate_goal_without_new_dependency=True,
+        bad_on_idle_chain=True,
+        bad_on_invalid_dependency=True,
+        step_parser_mode="strict",
+        enable_natural_step_parser=False,
+        good_step_cap=3,
+        bad_step_cap=3,
+    )
+    reasons = [detail["reason"] for detail in metrics["step_details"]]
+    labels = [detail["label"] for detail in metrics["step_details"]]
+    assert "out_of_scope" in reasons
+    assert "duplicate_goal_without_new_dependency" in reasons
+    assert labels[0] == "neutral"
+    assert labels[2] == "neutral"
+
+
+def test_idle_chain_only_marks_clear_duplicate_repetition_bad():
+    steps = (
+        "1. Define Var{A}:\n"
+        "   [Reasoning]: Set A.\n"
+        "   [Source]: \"A is 2\"\n"
+        "   [Calc]: Var{A} = <<2>>\n\n"
+        "2. Define Var{A}:\n"
+        "   [Reasoning]: Set A.\n"
+        "   [Source]: \"A is 2\"\n"
+        "   [Calc]: Var{A} = <<2>>\n\n"
+        "3. Calculate Var{Total}:\n"
+        "   [Reasoning]: Use the target number.\n"
+        "   [Source]: \"Total is 5\"\n"
+        "   [Calc]: Var{Total} = <<5>>"
+    )
+    response = _strict_response("Total", steps, "5")
+    metrics = reward_case_6.compute_step_rule_process_score(
+        response_str=response,
+        extra_info=_extra_info("A is 2. Total is 5."),
+        step_norm_min=3,
+        require_source_grounding=True,
+        bad_on_duplicate_goal_without_new_dependency=True,
+        bad_on_idle_chain=True,
+        bad_on_invalid_dependency=True,
+        step_parser_mode="strict",
+        enable_natural_step_parser=False,
+        good_step_cap=3,
+        bad_step_cap=3,
+    )
+    assert metrics["step_details"][1]["reason"] == "idle_chain"
+    assert metrics["step_details"][1]["label"] == "bad"
+
+
+def test_good_and_bad_caps_are_applied_in_process_score():
+    steps = (
+        "1. Define Var{A}:\n"
+        "   [Reasoning]: Combine two grounded ones.\n"
+        "   [Source]: \"Use 1 and 1\"\n"
+        "   [Calc]: Var{A} = <<1 + 1 = 2>>\n\n"
+        "2. Define Var{B}:\n"
+        "   [Reasoning]: Use Var{A} and a grounded question number.\n"
+        "   [Source]: Var{A} and \"2 and 1\"\n"
+        "   [Calc]: Var{B} = <<2 + 1 = 3>>\n\n"
+        "3. Define Var{C}:\n"
+        "   [Reasoning]: Use Var{B} and a grounded question number.\n"
+        "   [Source]: Var{B} and \"3 and 1\"\n"
+        "   [Calc]: Var{C} = <<3 + 1 = 4>>\n\n"
+        "4. Define Var{D}:\n"
+        "   [Reasoning]: Use Var{C} and a grounded question number.\n"
+        "   [Source]: Var{C} and \"4 and 1\"\n"
+        "   [Calc]: Var{D} = <<4 + 1 = 5>>\n\n"
+        "5. Define Var{X}:\n"
+        "   [Reasoning]: Repeat unsupported X.\n"
+        "   [Source]: Var{Missing}\n"
+        "   [Calc]: Var{X} = <<Var{Missing} + 1 = 2>>\n\n"
+        "6. Define Var{Y}:\n"
+        "   [Reasoning]: Repeat unsupported Y.\n"
+        "   [Source]: Var{Missing}\n"
+        "   [Calc]: Var{Y} = <<Var{Missing} + 1 = 2>>\n\n"
+        "7. Define Var{Z}:\n"
+        "   [Reasoning]: Repeat unsupported Z.\n"
+        "   [Source]: Var{Missing}\n"
+        "   [Calc]: Var{Z} = <<Var{Missing} + 1 = 2>>\n\n"
+        "8. Define Var{W}:\n"
+        "   [Reasoning]: Repeat unsupported W.\n"
+        "   [Source]: Var{Missing}\n"
+        "   [Calc]: Var{W} = <<Var{Missing} + 1 = 2>>\n\n"
+        "9. Calculate Var{Total}:\n"
+        "   [Reasoning]: Use the target number.\n"
+        "   [Source]: Var{D} and \"5 and 4\"\n"
+        "   [Calc]: Var{Total} = <<9>>"
+    )
+    response = _strict_response("Total", steps, "9")
+    metrics = reward_case_6.compute_step_rule_process_score(
+        response_str=response,
+        extra_info=_extra_info("Use 1 and 1. plus 1. plus 1. plus 1. Total is 9."),
+        step_norm_min=3,
+        require_source_grounding=True,
+        bad_on_duplicate_goal_without_new_dependency=True,
+        bad_on_idle_chain=True,
+        bad_on_invalid_dependency=True,
+        step_parser_mode="strict",
+        enable_natural_step_parser=False,
+        good_step_cap=3,
+        bad_step_cap=3,
+    )
+    assert metrics["good_count"] >= 4
+    assert metrics["good_count_capped"] == 3
+    assert metrics["bad_count"] >= 4
+    assert metrics["bad_count_capped"] == 3
 
 
 def test_legacy_mode_returns_stable_schema():
@@ -256,6 +507,7 @@ def test_legacy_mode_returns_stable_schema():
         reward_mode="legacy_overlap",
     )
     assert "step_good_count_capped" in result
+    assert "step_bad_count_capped" in result
     assert "length_penalty" in result
     assert "collapsed_multi_block_count" in result
     assert "structural_chain_count" in result

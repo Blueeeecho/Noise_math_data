@@ -727,25 +727,16 @@ def classify_step_strict(
     calc_has_target = bool(re.search(rf"Var\{{\s*{re.escape(var_name)}\s*\}}\s*=", calc_text or "", re.IGNORECASE))
     calc_refs = [ref for ref in extract_var_refs(calc_text) if ref != var_name]
     source_grounding = analyze_source_grounding(source_text, question_text, seen_vars)
-    question_grounded = bool(
-        source_grounding["question_number_hits"] or source_grounding["question_keyword_hits"]
-    )
-    prev_var_grounded = bool(source_grounding["prev_var_hits"])
-    grounded = source_grounding["grounded"]
-    strong_grounded = source_grounding["strong_grounded"]
+    prev_var_hits = [ref for ref in source_grounding["prev_var_hits"] if ref != var_name]
+    source_grounding["prev_var_hits"] = prev_var_hits
+    prev_var_grounded = bool(prev_var_hits)
+    grounded = bool(source_grounding["question_number_hits"] or prev_var_hits)
     invalid_dependency = any(ref not in seen_vars for ref in calc_refs)
     source_numbers = extract_question_numbers(source_text)
     question_numbers = extract_question_numbers(question_text)
-    calc_semantics = analyze_calc_semantics(
-        var_name=var_name,
-        calc_text=calc_text,
-        reasoning_text=reasoning_text,
-        source_text=source_text,
-        question_text=question_text,
-        calc_refs=calc_refs,
-    )
-    operand_numbers = calc_semantics["operand_numbers"]
     result_numbers = extract_calc_result_numbers(calc_text)
+    operand_numbers = extract_calc_operand_numbers(calc_text)
+    grounded_operand_numbers = operand_numbers & (question_numbers | source_numbers)
     unsupported_operand_numbers = sorted(operand_numbers - question_numbers - source_numbers)
 
     calc_signature = normalize_token(calc_text)
@@ -765,54 +756,39 @@ def classify_step_strict(
     new_question_number_hits = sorted(set(source_grounding["question_number_hits"]) - set(vh.get("source_numbers", set())))
     new_calc_refs = sorted(set(calc_refs) - set(vh.get("calc_refs", set())))
     has_new_support = bool(new_prev_var_hits or new_question_number_hits or new_calc_refs)
-    future_refs = set(extract_var_refs(future_text))
     repeated_goal_without_new_dependency = (
         is_goal_var
         and vh.get("good_set", False)
         and not has_new_support
     )
-    idle_chain = duplicate_same_content or (
+    idle_chain = (
         var_name in seen_vars
+        and duplicate_same_content
         and not has_new_support
-        and not (
-            (var_name not in seen_vars and var_name in future_refs)
-            or (is_goal_var and not vh.get("good_set", False))
-            or (
-                (var_name not in seen_vars)
-                and prev_var_grounded
-                and bool(source_grounding["question_number_hits"] or operand_numbers & question_numbers)
-            )
-        )
     )
-    weak_source_only_keywords = (
-        (not strong_grounded)
-        and bool(source_grounding["question_keyword_hits"])
-        and not source_grounding["question_number_hits"]
-        and not prev_var_grounded
-    )
-    introduces_new_used_var = (var_name not in seen_vars) and (var_name in future_refs)
     first_correct_goal = is_goal_var and (not vh.get("good_set", False))
-    combines_prior_layer = (
-        (var_name not in seen_vars)
-        and prev_var_grounded
-        and bool(source_grounding["question_number_hits"] or operand_numbers & question_numbers)
+    nontrivial_progress = (
+        bool(calc_refs)
+        or len(grounded_operand_numbers) >= 2
+        or bool(source_grounding["question_number_hits"] and prev_var_hits)
     )
-    contributes = introduces_new_used_var or first_correct_goal or combines_prior_layer
+    direct_fact_copy_intermediate = (
+        (not is_goal_var)
+        and (var_name not in seen_vars)
+        and (not calc_refs)
+        and len(grounded_operand_numbers) < 2
+    )
+    intermediate_progress_step = (
+        (not is_goal_var)
+        and (var_name not in seen_vars)
+        and grounded
+        and bool(source_grounding["question_number_hits"] or prev_var_grounded)
+        and nontrivial_progress
+        and (not direct_fact_copy_intermediate)
+    )
+    contributes = first_correct_goal or intermediate_progress_step
     source_self_talk = require_source_grounding and (not grounded) and bool(source_text.strip())
     out_of_scope_calc = bool(unsupported_operand_numbers) and not calc_refs
-    weak_source_unrelated_calc = (
-        weak_source_only_keywords
-        and not calc_refs
-        and (calc_semantics["has_operator"] or bool(operand_numbers))
-        and (unsupported_operand_numbers or not bool(operand_numbers & source_numbers))
-    )
-    missing_key_dependency_for_goal = (
-        is_goal_var
-        and not vh.get("good_set", False)
-        and calc_has_target
-        and calc_status == "correct"
-        and (calc_semantics["direct_fact_copy"] or (not prev_var_grounded and not calc_refs and not calc_semantics["mentions_var_semantics"]))
-    )
     label = "neutral"
     reason = "neutral_step"
 
@@ -825,39 +801,33 @@ def classify_step_strict(
     elif calc_status in {"incorrect", "missing", "unverifiable"}:
         label = "bad"
         reason = calc_status
-    elif source_self_talk:
-        label = "bad"
-        reason = "ungrounded_source"
     elif bad_on_invalid_dependency and invalid_dependency:
         label = "bad"
         reason = "invalid_dependency"
-    elif bad_on_duplicate_goal_without_new_dependency and repeated_goal_without_new_dependency:
-        label = "bad"
-        reason = "duplicate_goal_without_new_dependency"
     elif bad_on_idle_chain and idle_chain:
         label = "bad"
         reason = "idle_chain"
     elif out_of_scope_calc:
-        label = "bad"
+        label = "neutral"
         reason = "out_of_scope"
-    elif weak_source_unrelated_calc:
-        label = "bad"
-        reason = "weak_source_unrelated_calc"
-    elif missing_key_dependency_for_goal:
-        label = "bad"
-        reason = "missing_key_dependency_for_goal"
     elif (
         has_reasoning
         and has_source
         and has_calc
         and calc_status == "correct"
         and calc_has_target
-        and strong_grounded
+        and grounded
         and contributes
     ):
         label = "good"
         reason = "goal_step" if is_goal_var else "good_step"
-    elif (grounded or question_grounded or prev_var_grounded or calc_status == "correct") and not contributes:
+    elif source_self_talk:
+        label = "neutral"
+        reason = "ungrounded_source"
+    elif bad_on_duplicate_goal_without_new_dependency and repeated_goal_without_new_dependency:
+        label = "neutral"
+        reason = "duplicate_goal_without_new_dependency"
+    elif grounded and not contributes:
         label = "neutral"
         reason = "weak_contribution"
 
@@ -892,9 +862,9 @@ def classify_step_strict(
         "source_block_count": source_block_count,
         "calc_block_count": calc_block_count,
         "collapsed_multi_block_step": collapsed_multi_block_step,
-        "introduces_new_intermediate_var": (var_name not in seen_vars) and (not is_goal_var),
-        "bridges_to_goal": introduces_new_used_var,
-        "new_dependency_layer": combines_prior_layer,
+        "introduces_new_intermediate_var": intermediate_progress_step,
+        "bridges_to_goal": first_correct_goal,
+        "new_dependency_layer": (not is_goal_var) and (var_name not in seen_vars) and prev_var_grounded,
         "last_calc_signature": calc_signature,
     }
 
@@ -1010,6 +980,7 @@ def compute_step_rule_process_score(
     step_parser_mode="strict",
     enable_natural_step_parser=False,
     good_step_cap=3,
+    bad_step_cap=3,
 ):
     target_var = extract_target_var(response_str)
     backward_text = extract_backward_execution(response_str)
@@ -1039,6 +1010,7 @@ def compute_step_rule_process_score(
             "good_count": 0,
             "good_count_capped": 0,
             "bad_count": 0,
+            "bad_count_capped": 0,
             "neutral_count": 0,
             "step_count": 0,
             "parsed_step_count": 0,
@@ -1062,15 +1034,17 @@ def compute_step_rule_process_score(
 
     if not steps:
         z = max(step_norm_min, 0)
+        bad_count_capped = min(1, bad_step_cap) if z else 1
         return build_step_metrics(
             bad_count=1,
+            bad_count_capped=bad_count_capped,
             step_parse_failed=1,
             step_parse_mode="failed",
             step_constraint_mode="failed",
             step_parse_reason=parse_reason,
             step_constraint_hits="parse_failed:1",
             z=z,
-            bad_ratio=(1.0 / z) if z else 1.0,
+            bad_ratio=(bad_count_capped / z) if z else 1.0,
         )
 
     for idx, step_info in enumerate(steps):
@@ -1142,7 +1116,8 @@ def compute_step_rule_process_score(
 
     step_count = len(steps)
     z = max(step_count, step_norm_min)
-    good_count_capped = good_count
+    good_count_capped = min(good_count, good_step_cap)
+    bad_count_capped = min(bad_count, bad_step_cap)
     collapsed_multi_block_count = sum(1 for detail in step_details if detail.get("collapsed_multi_block_step"))
     structural_chain_count = sum(
         1
@@ -1153,6 +1128,7 @@ def compute_step_rule_process_score(
         good_count=good_count,
         good_count_capped=good_count_capped,
         bad_count=bad_count,
+        bad_count_capped=bad_count_capped,
         neutral_count=neutral_count,
         step_count=step_count,
         parsed_step_count=step_count,
@@ -1161,8 +1137,8 @@ def compute_step_rule_process_score(
         step_parse_reason=parse_reason,
         step_constraint_hits=summarize_step_reasons(step_details),
         z=z,
-        good_ratio=good_count / z,
-        bad_ratio=bad_count / z,
+        good_ratio=good_count_capped / z,
+        bad_ratio=bad_count_capped / z,
         collapsed_multi_block_count=collapsed_multi_block_count,
         has_collapsed_multi_block_step=collapsed_multi_block_count > 0,
         structural_chain_count=structural_chain_count,
@@ -1183,6 +1159,7 @@ def analyze_response_for_display(
     step_parser_mode="strict",
     enable_natural_step_parser=False,
     good_step_cap=3,
+    bad_step_cap=3,
     **kwargs,
 ):
     step_metrics = compute_step_rule_process_score(
@@ -1196,6 +1173,7 @@ def analyze_response_for_display(
         step_parser_mode="strict",
         enable_natural_step_parser=False,
         good_step_cap=max(as_int(good_step_cap, 3), 0),
+        bad_step_cap=max(as_int(bad_step_cap, 3), 0),
     )
     gold_ans_text = ground_truth.get("gold_answer", "")
     if not gold_ans_text and ground_truth.get("gold_chain"):
@@ -1216,9 +1194,9 @@ def analyze_response_for_display(
         "parsed_step_count": step_metrics["parsed_step_count"],
         "step_details": step_metrics["step_details"],
         "score_rubric": {
-            "good_step": "strict 结构完整、Calc 正确、Source 足够 grounded，且该步骤对目标求解有真实贡献",
-            "bad_step": "严格结构失败、缺字段、算错/缺失/不可验证、未定义依赖、重复 goal、空转链或明显题外扩展",
-            "neutral_step": "结构与计算基本可解析，但 grounded 或目标推进不足，暂不奖励也不强惩罚",
+            "good_step": "strict 结构完整、Calc 正确、写入当前变量，且通过题目数字或前置变量提供清晰支持",
+            "bad_step": "严格结构失败、缺字段、算错/缺失/不可验证、未定义依赖，或明确重复空转",
+            "neutral_step": "结构与计算基本可解析，但支持不足或贡献较弱，暂不奖励也不强惩罚",
         },
     }
 
@@ -1243,6 +1221,7 @@ def build_reward_result(score, **extra):
         "step_good_count": 0,
         "step_good_count_capped": 0,
         "step_bad_count": 0,
+        "step_bad_count_capped": 0,
         "step_neutral_count": 0,
         "step_count": 0,
         "parsed_step_count": 0,
@@ -1276,7 +1255,7 @@ def compute_reward(
     reward_mode="legacy_overlap",
     global_fail_reward=-0.5,
     step_acc_weight=0.7,
-    step_good_weight=0.4,
+    step_good_weight=0.45,
     step_bad_weight=0.3,
     step_fmt_weight=0.2,
     step_norm_min=3,
@@ -1297,6 +1276,7 @@ def compute_reward(
     failed_format_term=0.0,
     enforce_explicit_step_constraints=True,
     good_step_cap=3,
+    bad_step_cap=3,
     length_penalty_start=4,
     length_penalty_per_step=0.1,
     **kwargs,
@@ -1311,7 +1291,7 @@ def compute_reward(
     w_outcome = as_float(w_outcome, 2.5)
     global_fail_reward = as_float(global_fail_reward, -0.5)
     step_acc_weight = as_float(step_acc_weight, 0.7)
-    step_good_weight = as_float(step_good_weight, 0.4)
+    step_good_weight = as_float(step_good_weight, 0.45)
     step_bad_weight = as_float(step_bad_weight, 0.3)
     step_fmt_weight = as_float(step_fmt_weight, 0.2)
     step_norm_min = max(as_int(step_norm_min, 3), 1)
@@ -1325,6 +1305,7 @@ def compute_reward(
     natural_format_term = as_float(natural_format_term, 0.5)
     failed_format_term = as_float(failed_format_term, 0.0)
     good_step_cap = max(as_int(good_step_cap, 3), 0)
+    bad_step_cap = max(as_int(bad_step_cap, 3), 0)
     length_penalty_start = max(as_int(length_penalty_start, 4), 0)
     length_penalty_per_step = max(as_float(length_penalty_per_step, 0.1), 0.0)
 
@@ -1362,6 +1343,7 @@ def compute_reward(
             step_parser_mode="strict",
             enable_natural_step_parser=False,
             good_step_cap=good_step_cap,
+            bad_step_cap=bad_step_cap,
         )
         step_process_score = step_metrics["good_ratio"] - step_metrics["bad_ratio"]
         format_term = 1.0 if format_ok else -1.0
@@ -1392,6 +1374,7 @@ def compute_reward(
             step_good_count=step_metrics["good_count"],
             step_good_count_capped=step_metrics["good_count_capped"],
             step_bad_count=step_metrics["bad_count"],
+            step_bad_count_capped=step_metrics["bad_count_capped"],
             step_neutral_count=step_metrics["neutral_count"],
             step_count=step_metrics["step_count"],
             parsed_step_count=step_metrics["parsed_step_count"],

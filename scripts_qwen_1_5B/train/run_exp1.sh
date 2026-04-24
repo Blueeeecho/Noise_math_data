@@ -204,7 +204,7 @@ echo "Validation and checkpoint saving are enforced once per epoch inside ray_tr
 # Using standard verl PPO trainer logic with CLI overrides for GRPO
 # Key changes for GRPO:
 # 1. algorithm.adv_estimator=grpo
-# 2. actor_rollout_ref.rollout.n=4 (Group size > 1)
+# 2. actor_rollout_ref.rollout.n=8 (Group size > 1)
 # 3. No critic configs (GRPO doesn't use a learned critic)
 
 # Default model path is the output of SFT training. 
@@ -378,7 +378,7 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.rollout.val_kwargs.top_p=${top_p}\
     actor_rollout_ref.rollout.val_kwargs.temperature=${TEST_TEMP} \
     actor_rollout_ref.rollout.gpu_memory_utilization=${gpu_memory_utilization} \
-    actor_rollout_ref.rollout.n=4 \
+    actor_rollout_ref.rollout.n=8 \
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=2 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     reward_model.enable=False \

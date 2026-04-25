@@ -1255,7 +1255,7 @@ def compute_reward(
     reward_mode="legacy_overlap",
     global_fail_reward=-0.5,
     step_acc_weight=0.7,
-    step_good_weight=0.45,
+    step_good_weight=0.4,
     step_bad_weight=0.3,
     step_fmt_weight=0.2,
     step_norm_min=3,
@@ -1291,7 +1291,7 @@ def compute_reward(
     w_outcome = as_float(w_outcome, 2.5)
     global_fail_reward = as_float(global_fail_reward, -0.5)
     step_acc_weight = as_float(step_acc_weight, 0.7)
-    step_good_weight = as_float(step_good_weight, 0.45)
+    step_good_weight = as_float(step_good_weight, 0.4)
     step_bad_weight = as_float(step_bad_weight, 0.3)
     step_fmt_weight = as_float(step_fmt_weight, 0.2)
     step_norm_min = max(as_int(step_norm_min, 3), 1)

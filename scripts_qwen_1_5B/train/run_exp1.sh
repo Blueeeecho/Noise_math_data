@@ -204,7 +204,7 @@ echo "Validation and checkpoint saving are enforced once per epoch inside ray_tr
 # Using standard verl PPO trainer logic with CLI overrides for GRPO
 # Key changes for GRPO:
 # 1. algorithm.adv_estimator=grpo
-# 2. actor_rollout_ref.rollout.n=8 (Group size > 1)
+# 2. actor_rollout_ref.rollout.n=4 (Group size > 1)
 # 3. No critic configs (GRPO doesn't use a learned critic)
 
 # Default model path is the output of SFT training. 
@@ -256,7 +256,7 @@ w_outcome=2.5
 reward_mode="step_rule"
 global_fail_reward=-0.5
 step_acc_weight=0.7
-step_good_weight=0.45
+step_good_weight=0.4
 step_bad_weight=0.3
 step_fmt_weight=0.2
 step_norm_min=3
@@ -303,7 +303,7 @@ if [ "${CASE_NAME}" = "case_6" ]; then
     gen_prompt_bsz=$((train_prompt_bsz * 1))
     global_fail_reward=-0.5
     step_acc_weight=0.7
-    step_good_weight=0.45
+    step_good_weight=0.4
     step_bad_weight=0.3
     step_fmt_weight=0.2
     good_step_cap=3
@@ -378,7 +378,7 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.rollout.val_kwargs.top_p=${top_p}\
     actor_rollout_ref.rollout.val_kwargs.temperature=${TEST_TEMP} \
     actor_rollout_ref.rollout.gpu_memory_utilization=${gpu_memory_utilization} \
-    actor_rollout_ref.rollout.n=8 \
+    actor_rollout_ref.rollout.n=4 \
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=2 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     reward_model.enable=False \

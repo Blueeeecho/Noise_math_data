@@ -219,6 +219,38 @@ def test_intermediate_step_with_two_grounded_numbers_can_be_good():
     assert metrics["step_details"][0]["label"] == "good"
 
 
+def test_intermediate_step_with_operator_and_one_grounded_number_can_be_good():
+    steps = (
+        "1. Define Var{Base}:\n"
+        "   [Reasoning]: Record the given base value.\n"
+        "   [Source]: \"Base is 2\"\n"
+        "   [Calc]: Var{Base} = <<2>>\n\n"
+        "2. Define Var{Scaled}:\n"
+        "   [Reasoning]: Scale the previous value using a simple arithmetic operator.\n"
+        "   [Source]: Var{Base}\n"
+        "   [Calc]: Var{Scaled} = <<Var{Base} * 2 = 4>><<2 * 2 = 4>>\n\n"
+        "3. Calculate Var{Total}:\n"
+        "   [Reasoning]: Use the target number from the question.\n"
+        "   [Source]: \"Total is 7\"\n"
+        "   [Calc]: Var{Total} = <<7>>"
+    )
+    response = _strict_response("Total", steps, "7")
+    metrics = reward_case_6.compute_step_rule_process_score(
+        response_str=response,
+        extra_info=_extra_info("Base is 2. Total is 7."),
+        step_norm_min=3,
+        require_source_grounding=True,
+        bad_on_duplicate_goal_without_new_dependency=True,
+        bad_on_idle_chain=True,
+        bad_on_invalid_dependency=True,
+        step_parser_mode="strict",
+        enable_natural_step_parser=False,
+        good_step_cap=3,
+        bad_step_cap=3,
+    )
+    assert metrics["step_details"][1]["label"] == "good"
+
+
 def test_intermediate_step_with_mixed_question_number_and_previous_var_can_be_good():
     steps = (
         "1. Define Var{Base}:\n"
@@ -316,7 +348,7 @@ def test_length_penalty_no_longer_affects_step_rule_score():
     assert math.isclose(result["length_penalty"], 0.0)
     expected = (
         0.7 * result["r_acc"]
-        + 0.45 * (result["step_good_count_capped"] / result["step_norm_z"])
+        + 0.4 * (result["step_good_count_capped"] / result["step_norm_z"])
         - 0.3 * (result["step_bad_count_capped"] / result["step_norm_z"])
         + 0.2 * result["r_fmt"]
     )
@@ -348,7 +380,7 @@ def test_step_rule_uses_case5_like_formula_with_strict_format():
     )
     expected = (
         0.7 * result["r_acc"]
-        + 0.45 * (result["step_good_count_capped"] / result["step_norm_z"])
+        + 0.4 * (result["step_good_count_capped"] / result["step_norm_z"])
         - 0.3 * (result["step_bad_count_capped"] / result["step_norm_z"])
         + 0.2 * result["r_fmt"]
     )
@@ -357,7 +389,7 @@ def test_step_rule_uses_case5_like_formula_with_strict_format():
     assert result["r_fmt"] == 1.0
 
 
-def test_edge_case_reasons_are_neutral_not_bad():
+def test_edge_case_reasons_only_keep_out_of_scope_neutral():
     steps = (
         "1. Define Var{A}:\n"
         "   [Reasoning]: Use a number that is outside the grounded source.\n"
@@ -391,7 +423,36 @@ def test_edge_case_reasons_are_neutral_not_bad():
     assert "out_of_scope" in reasons
     assert "duplicate_goal_without_new_dependency" in reasons
     assert labels[0] == "neutral"
-    assert labels[2] == "neutral"
+    assert labels[2] == "bad"
+
+
+def test_ungrounded_source_is_bad_when_source_grounding_is_required():
+    steps = (
+        "1. Define Var{A}:\n"
+        "   [Reasoning]: Use a source sentence that does not ground to the question or previous vars.\n"
+        "   [Source]: \"Some unrelated note\"\n"
+        "   [Calc]: Var{A} = <<2>>\n\n"
+        "2. Calculate Var{Total}:\n"
+        "   [Reasoning]: First correct target step.\n"
+        "   [Source]: \"Total is 1\"\n"
+        "   [Calc]: Var{Total} = <<1>>"
+    )
+    response = _strict_response("Total", steps, "1")
+    metrics = reward_case_6.compute_step_rule_process_score(
+        response_str=response,
+        extra_info=_extra_info("A starts from the number 2. Total is 1."),
+        step_norm_min=3,
+        require_source_grounding=True,
+        bad_on_duplicate_goal_without_new_dependency=True,
+        bad_on_idle_chain=True,
+        bad_on_invalid_dependency=True,
+        step_parser_mode="strict",
+        enable_natural_step_parser=False,
+        good_step_cap=3,
+        bad_step_cap=3,
+    )
+    assert metrics["step_details"][0]["reason"] == "ungrounded_source"
+    assert metrics["step_details"][0]["label"] == "bad"
 
 
 def test_idle_chain_only_marks_clear_duplicate_repetition_bad():

@@ -738,6 +738,7 @@ def classify_step_strict(
     operand_numbers = extract_calc_operand_numbers(calc_text)
     grounded_operand_numbers = operand_numbers & (question_numbers | source_numbers)
     unsupported_operand_numbers = sorted(operand_numbers - question_numbers - source_numbers)
+    calc_has_operator = calc_uses_operator(calc_text)
 
     calc_signature = normalize_token(calc_text)
     source_signature = normalize_token(source_text)
@@ -771,6 +772,7 @@ def classify_step_strict(
         bool(calc_refs)
         or len(grounded_operand_numbers) >= 2
         or bool(source_grounding["question_number_hits"] and prev_var_hits)
+        or (calc_has_operator and len(grounded_operand_numbers) >= 1)
     )
     direct_fact_copy_intermediate = (
         (not is_goal_var)
@@ -822,10 +824,10 @@ def classify_step_strict(
         label = "good"
         reason = "goal_step" if is_goal_var else "good_step"
     elif source_self_talk:
-        label = "neutral"
+        label = "bad"
         reason = "ungrounded_source"
     elif bad_on_duplicate_goal_without_new_dependency and repeated_goal_without_new_dependency:
-        label = "neutral"
+        label = "bad"
         reason = "duplicate_goal_without_new_dependency"
     elif grounded and not contributes:
         label = "neutral"

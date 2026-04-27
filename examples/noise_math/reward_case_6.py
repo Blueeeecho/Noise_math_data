@@ -674,6 +674,7 @@ def classify_step_strict(
     future_text,
     seen_vars,
     var_history,
+    previous_result_numbers,
     require_source_grounding,
     bad_on_duplicate_goal_without_new_dependency,
     bad_on_idle_chain,
@@ -730,7 +731,6 @@ def classify_step_strict(
     prev_var_hits = [ref for ref in source_grounding["prev_var_hits"] if ref != var_name]
     source_grounding["prev_var_hits"] = prev_var_hits
     prev_var_grounded = bool(prev_var_hits)
-    grounded = bool(source_grounding["question_number_hits"] or prev_var_hits)
     invalid_dependency = any(ref not in seen_vars for ref in calc_refs)
     source_numbers = extract_question_numbers(source_text)
     question_numbers = extract_question_numbers(question_text)
@@ -739,6 +739,8 @@ def classify_step_strict(
     grounded_operand_numbers = operand_numbers & (question_numbers | source_numbers)
     unsupported_operand_numbers = sorted(operand_numbers - question_numbers - source_numbers)
     calc_has_operator = calc_uses_operator(calc_text)
+    result_number_continuity = bool(operand_numbers and previous_result_numbers and (operand_numbers & previous_result_numbers))
+    grounded = bool(source_grounding["question_number_hits"] or prev_var_hits or result_number_continuity)
 
     calc_signature = normalize_token(calc_text)
     source_signature = normalize_token(source_text)
@@ -757,6 +759,8 @@ def classify_step_strict(
     new_question_number_hits = sorted(set(source_grounding["question_number_hits"]) - set(vh.get("source_numbers", set())))
     new_calc_refs = sorted(set(calc_refs) - set(vh.get("calc_refs", set())))
     has_new_support = bool(new_prev_var_hits or new_question_number_hits or new_calc_refs)
+    can_refine_existing_var = (var_name in seen_vars) and (not duplicate_same_content) and has_new_support
+    allows_intermediate_var = (var_name not in seen_vars) or can_refine_existing_var
     repeated_goal_without_new_dependency = (
         is_goal_var
         and vh.get("good_set", False)
@@ -776,15 +780,15 @@ def classify_step_strict(
     )
     direct_fact_copy_intermediate = (
         (not is_goal_var)
-        and (var_name not in seen_vars)
         and (not calc_refs)
+        and (not calc_has_operator)
         and len(grounded_operand_numbers) < 2
     )
     intermediate_progress_step = (
         (not is_goal_var)
-        and (var_name not in seen_vars)
+        and allows_intermediate_var
         and grounded
-        and bool(source_grounding["question_number_hits"] or prev_var_grounded)
+        and bool(source_grounding["question_number_hits"] or prev_var_grounded or result_number_continuity)
         and nontrivial_progress
         and (not direct_fact_copy_intermediate)
     )
@@ -840,6 +844,8 @@ def classify_step_strict(
         source_grounded_by.append("question_keyword")
     if source_grounding["prev_var_hits"]:
         source_grounded_by.append("previous_var")
+    if result_number_continuity:
+        source_grounded_by.append("result_number_continuity")
 
     return label, {
         "reason": reason,
@@ -855,6 +861,7 @@ def classify_step_strict(
         "question_number_hits": source_grounding["question_number_hits"],
         "question_keyword_hits": source_grounding["question_keyword_hits"],
         "prev_var_hits": source_grounding["prev_var_hits"],
+        "result_number_continuity": result_number_continuity,
         "calc_refs": calc_refs,
         "step_title": step_text.strip().splitlines()[0].strip() if step_text.strip() else "",
         "parser_mode": "strict",
@@ -866,7 +873,7 @@ def classify_step_strict(
         "collapsed_multi_block_step": collapsed_multi_block_step,
         "introduces_new_intermediate_var": intermediate_progress_step,
         "bridges_to_goal": first_correct_goal,
-        "new_dependency_layer": (not is_goal_var) and (var_name not in seen_vars) and prev_var_grounded,
+        "new_dependency_layer": (not is_goal_var) and allows_intermediate_var and prev_var_grounded,
         "last_calc_signature": calc_signature,
     }
 
@@ -1006,6 +1013,7 @@ def compute_step_rule_process_score(
         }
     )
     step_details = []
+    previous_result_numbers = set()
 
     def build_step_metrics(**overrides):
         metrics = {
@@ -1060,6 +1068,7 @@ def compute_step_rule_process_score(
             future_text=future_text,
             seen_vars=seen_vars,
             var_history=var_history,
+            previous_result_numbers=previous_result_numbers,
             require_source_grounding=require_source_grounding,
             bad_on_duplicate_goal_without_new_dependency=bad_on_duplicate_goal_without_new_dependency,
             bad_on_idle_chain=bad_on_idle_chain,
@@ -1087,6 +1096,8 @@ def compute_step_rule_process_score(
             if meta.get("is_goal_var") and label == "good":
                 vrec["good_set"] = True
             var_history[meta["var_name"]] = vrec
+
+        previous_result_numbers.update(meta.get("result_numbers", set()))
 
         step_details.append(
             {

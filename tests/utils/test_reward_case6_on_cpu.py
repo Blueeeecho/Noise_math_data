@@ -251,6 +251,75 @@ def test_intermediate_step_with_operator_and_one_grounded_number_can_be_good():
     assert metrics["step_details"][1]["label"] == "good"
 
 
+def test_repeated_var_with_new_support_can_still_be_good():
+    steps = (
+        "1. Define Var{Base}:\n"
+        "   [Reasoning]: Record the given base value.\n"
+        "   [Source]: \"Base is 2\"\n"
+        "   [Calc]: Var{Base} = <<2>>\n\n"
+        "2. Define Var{Carry}:\n"
+        "   [Reasoning]: Build an intermediate value from Base and a grounded number.\n"
+        "   [Source]: Var{Base} and \"plus 3\"\n"
+        "   [Calc]: Var{Carry} = <<Var{Base} + 3 = 5>><<2 + 3 = 5>>\n\n"
+        "3. Define Var{Carry}:\n"
+        "   [Reasoning]: Refine the same variable using new grounded support.\n"
+        "   [Source]: Var{Base} and \"plus 4\"\n"
+        "   [Calc]: Var{Carry} = <<Var{Base} + 4 = 6>><<2 + 4 = 6>>\n\n"
+        "4. Calculate Var{Total}:\n"
+        "   [Reasoning]: Use the target number from the question.\n"
+        "   [Source]: \"Total is 6\"\n"
+        "   [Calc]: Var{Total} = <<6>>"
+    )
+    response = _strict_response("Total", steps, "6")
+    metrics = reward_case_6.compute_step_rule_process_score(
+        response_str=response,
+        extra_info=_extra_info("Base is 2. plus 3. plus 4. Total is 6."),
+        step_norm_min=3,
+        require_source_grounding=True,
+        bad_on_duplicate_goal_without_new_dependency=True,
+        bad_on_idle_chain=True,
+        bad_on_invalid_dependency=True,
+        step_parser_mode="strict",
+        enable_natural_step_parser=False,
+        good_step_cap=3,
+        bad_step_cap=3,
+    )
+    assert metrics["step_details"][2]["label"] == "good"
+
+
+def test_result_number_continuity_can_support_intermediate_good():
+    steps = (
+        "1. Define Var{Combo}:\n"
+        "   [Reasoning]: Combine the grounded question numbers into an intermediate result.\n"
+        "   [Source]: \"There are 2 red marbles and 3 blue marbles\"\n"
+        "   [Calc]: Var{Combo} = <<2 + 3 = 5>>\n\n"
+        "2. Define Var{Carry}:\n"
+        "   [Reasoning]: Continue from the previous numeric result without naming the variable.\n"
+        "   [Source]: \"Continue from above with 5 and add 1\"\n"
+        "   [Calc]: Var{Carry} = <<5 + 1 = 6>>\n\n"
+        "3. Calculate Var{Total}:\n"
+        "   [Reasoning]: Use the target value.\n"
+        "   [Source]: \"Total is 6\"\n"
+        "   [Calc]: Var{Total} = <<6>>"
+    )
+    response = _strict_response("Total", steps, "6")
+    metrics = reward_case_6.compute_step_rule_process_score(
+        response_str=response,
+        extra_info=_extra_info("There are 2 red marbles and 3 blue marbles. Total is 6."),
+        step_norm_min=3,
+        require_source_grounding=True,
+        bad_on_duplicate_goal_without_new_dependency=True,
+        bad_on_idle_chain=True,
+        bad_on_invalid_dependency=True,
+        step_parser_mode="strict",
+        enable_natural_step_parser=False,
+        good_step_cap=3,
+        bad_step_cap=3,
+    )
+    assert metrics["step_details"][1]["label"] == "good"
+    assert "result_number_continuity" in metrics["step_details"][1]["source_grounded_by"]
+
+
 def test_intermediate_step_with_mixed_question_number_and_previous_var_can_be_good():
     steps = (
         "1. Define Var{Base}:\n"

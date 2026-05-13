@@ -1218,6 +1218,7 @@ def build_reward_result(score, **extra):
     result = {
         "score": score,
         "reward_mode": "legacy_overlap",
+        "gate_acc": 0.0,
         "r_acc": 0.0,
         "r_fmt": 0.0,
         "raw_good_term": 0.0,
@@ -1360,7 +1361,8 @@ def compute_reward(
         )
         step_process_score = step_metrics["good_ratio"] - step_metrics["bad_ratio"]
         format_term = 1.0 if format_ok else -1.0
-        raw_good_term = step_good_weight * step_metrics["good_ratio"]
+        gate_acc = 0.2 + 0.8 * r_acc
+        raw_good_term = step_good_weight * gate_acc * step_metrics["good_ratio"]
         raw_bad_term = step_bad_weight * step_metrics["bad_ratio"]
         raw_process_term = raw_good_term - raw_bad_term
         acc_contrib = step_acc_weight * r_acc
@@ -1371,6 +1373,7 @@ def compute_reward(
         return build_reward_result(
             total_reward,
             reward_mode=reward_mode,
+            gate_acc=gate_acc,
             r_acc=r_acc,
             r_fmt=format_term,
             raw_good_term=raw_good_term,

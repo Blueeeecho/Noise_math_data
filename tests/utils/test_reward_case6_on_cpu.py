@@ -417,7 +417,7 @@ def test_length_penalty_no_longer_affects_step_rule_score():
     assert math.isclose(result["length_penalty"], 0.0)
     expected = (
         0.7 * result["r_acc"]
-        + 0.4 * (result["step_good_count_capped"] / result["step_norm_z"])
+        + 0.4 * result["gate_acc"] * (result["step_good_count_capped"] / result["step_norm_z"])
         - 0.3 * (result["step_bad_count_capped"] / result["step_norm_z"])
         + 0.2 * result["r_fmt"]
     )
@@ -449,13 +449,44 @@ def test_step_rule_uses_case5_like_formula_with_strict_format():
     )
     expected = (
         0.7 * result["r_acc"]
-        + 0.4 * (result["step_good_count_capped"] / result["step_norm_z"])
+        + 0.4 * result["gate_acc"] * (result["step_good_count_capped"] / result["step_norm_z"])
         - 0.3 * (result["step_bad_count_capped"] / result["step_norm_z"])
         + 0.2 * result["r_fmt"]
     )
     assert math.isclose(result["score"], expected)
     assert math.isclose(result["length_penalty"], 0.0)
     assert result["r_fmt"] == 1.0
+    assert math.isclose(result["gate_acc"], 1.0)
+
+
+def test_wrong_answer_only_keeps_20_percent_of_good_process_signal():
+    steps = (
+        "1. Define Var{A}:\n"
+        "   [Reasoning]: Use grounded question numbers to derive A.\n"
+        "   [Source]: \"Use 2 and 3\"\n"
+        "   [Calc]: Var{A} = <<2 + 3 = 5>>\n\n"
+        "2. Define Var{B}:\n"
+        "   [Reasoning]: Use Var{A} and a grounded question number to derive B.\n"
+        "   [Source]: Var{A} and \"5 and 1\"\n"
+        "   [Calc]: Var{B} = <<5 + 1 = 6>>\n\n"
+        "3. Calculate Var{Total}:\n"
+        "   [Reasoning]: Reuse Var{B} for the target variable.\n"
+        "   [Source]: Var{B}\n"
+        "   [Calc]: Var{Total} = <<6>>"
+    )
+    response = _strict_response("Total", steps, "999")
+    result = reward_case_6.compute_reward(
+        data_source="math_noise",
+        solution_str=response,
+        ground_truth=_ground_truth("6"),
+        extra_info=_extra_info("Use 2 and 3, then add 1 to get the total."),
+        reward_mode="step_rule",
+    )
+    good_ratio = result["step_good_count_capped"] / result["step_norm_z"]
+    assert result["r_acc"] == 0.0
+    assert result["step_good_count_capped"] > 0
+    assert math.isclose(result["gate_acc"], 0.2)
+    assert math.isclose(result["raw_good_term"], 0.4 * 0.2 * good_ratio)
 
 
 def test_edge_case_reasons_only_keep_out_of_scope_neutral():
